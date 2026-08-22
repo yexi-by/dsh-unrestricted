@@ -1,7 +1,7 @@
 {
-  "repo": "D:\\work\\dsh\\deepseek-harness",
+  "fixtureCwd": "/workspace/dsh-unrestricted",
   "commit": "528c682e061696f5a160f363f236ecbf53cbd006",
-  "capturedAt": "2026-08-21T20:06:14.315Z",
+  "capturedAt": "2026-08-22T07:38:28.120Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -51,7 +51,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5150
+      "promptBytes": 5146
     },
     "standard-plan": {
       "sections": [
@@ -101,7 +101,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 7496
+      "promptBytes": 7492
     },
     "code": {
       "sections": [
@@ -129,7 +129,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36192
+      "promptBytes": 36188
     },
     "code-plan": {
       "sections": [
@@ -157,7 +157,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 38538
+      "promptBytes": 38534
     },
     "cordis": {
       "sections": [
@@ -215,7 +215,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 16721
+      "promptBytes": 16717
     },
     "cordis-plan": {
       "sections": [
@@ -273,7 +273,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 19067
+      "promptBytes": 19063
     },
     "minimal": {
       "sections": [
@@ -333,7 +333,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5150
+      "promptBytes": 5146
     }
   }
 }

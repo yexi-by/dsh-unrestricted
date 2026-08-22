@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Toggleable unrestricted mode for DSH Web: fuses the unrestricted execution mode into each preset's original system prompt (standard/code/cordis/minimal + subagents), with per-mode anchor verification and automatic fallback to the stock prompt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yexi-by/dsh-unrestricted.git"
+  },
+  "homepage": "https://github.com/yexi-by/dsh-unrestricted#readme",
+  "bugs": "https://github.com/yexi-by/dsh-unrestricted/issues",
   "type": "module",
   "main": "src/node.js",
   "exports": {
@@ -13,8 +20,11 @@
   "files": [
     "src",
     "lib",
+    "docs",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "dsh": {
     "bundle": {
@@ -35,7 +45,7 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/",
+    "test": "node --test tests/rules.spec.mjs",
     "dump-prompts": "node tools/dump-prompts.mjs --repo ../../deepseek-harness --out tests/fixtures"
   },
   "devDependencies": {

@@ -52,7 +52,7 @@ async function rpc(method, payload) {
 
 async function createSession(preset, title) {
   const value = await rpc('session.create', {
-    cwd: 'D:\\work\\dsh\\plugin\\unrestricted',
+    cwd: pluginDir,
     agentPreset: preset,
   })
   const sessionId = value.sessionId ?? value.id ?? value

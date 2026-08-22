@@ -27,6 +27,7 @@ function arg(name) {
 
 const repo = resolve(arg('repo'))
 const out = resolve(arg('out'))
+const FIXTURE_CWD = '/workspace/dsh-unrestricted'
 
 async function importPackage(relativeDir) {
   const manifestPath = join(repo, relativeDir, 'package.json')
@@ -96,7 +97,12 @@ try {
   commit = execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf8' }).trim()
 } catch { /* not a git checkout */ }
 
-const meta = { repo, commit, capturedAt: new Date().toISOString(), dumps: {} }
+const meta = {
+  fixtureCwd: FIXTURE_CWD,
+  commit,
+  capturedAt: new Date().toISOString(),
+  dumps: {},
+}
 
 async function dumpAgent(label, agent) {
   const assembly = await ctx.systemPrompt.assemble({ agent, scope: agent })
@@ -121,7 +127,7 @@ async function dumpAgent(label, agent) {
 async function withPreset(id, fn) {
   const handle = await ctx.agents.create({
     sessionId: SessionId(`dump-${id}`),
-    meta: { cwd: process.cwd() },
+    meta: { cwd: FIXTURE_CWD },
     agentOptions: { provider: 'deepseek', model: 'deepseek-chat' },
     setup: agentCtx => ctx.agentPresets.mount(agentCtx, id).then(() => undefined),
   })

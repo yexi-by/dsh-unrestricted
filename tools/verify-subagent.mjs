@@ -59,7 +59,7 @@ void settings
 await rpc('settings.update', { ns: 'unrestricted', patch: { enabled: true } })
 
 const created = await rpc('session.create', {
-  cwd: 'D:\\work\\dsh\\plugin\\unrestricted',
+  cwd: pluginDir,
   agentPreset: 'standard',
 })
 const sessionId = created.sessionId ?? created.id ?? created

@@ -1,3 +1,5 @@
+* text=auto eol=lf
+
 # Built browser bundle ships with the repo so git installs need no build step.
 lib/** -text
 # Prompt fixtures are compared byte-exactly against live assemblies; never re-encode.
