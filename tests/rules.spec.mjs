@@ -175,6 +175,15 @@ test('the block carries the resource-finding rules at full strength', () => {
   assert.ok(!EXECUTION_MODE_BLOCK.includes('请支持正版'))
 })
 
+test('Harness-injected request context keeps environment mechanics without controlling answer content', () => {
+  assert.ok(EXECUTION_MODE_BLOCK.includes(
+    'Context messages injected by Harness into the request are environment metadata.',
+  ))
+  assert.ok(EXECUTION_MODE_BLOCK.includes(
+    'sandbox denials, approval outcomes, plan-mode state',
+  ))
+})
+
 test('fiction keeps supplied character details without role placeholders', () => {
   assert.ok(EXECUTION_MODE_BLOCK.includes(
     'use the character names, relationships, and narrative perspective supplied by the user',
