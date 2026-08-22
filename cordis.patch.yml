@@ -1,0 +1,7 @@
+# dsh-unrestricted bundle layer: one row mounts the plugin's node half; the
+# browser half is discovered through the package's dsh.client manifest and
+# served by the client-module registry. Prompt fusion happens in the node
+# half's assemble waterfall listener, not here.
+- insert:
+    - id: unrestricted
+      name: 'dsh-unrestricted'
