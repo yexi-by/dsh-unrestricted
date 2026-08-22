@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Toggleable unrestricted mode for DSH Web: fuses the unrestricted execution mode into each preset's original system prompt (standard/code/cordis/minimal + subagents), with per-mode anchor verification and automatic fallback to the stock prompt",
   "license": "MIT",

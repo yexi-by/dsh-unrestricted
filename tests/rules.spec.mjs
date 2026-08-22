@@ -175,6 +175,15 @@ test('the block carries the resource-finding rules at full strength', () => {
   assert.ok(!EXECUTION_MODE_BLOCK.includes('请支持正版'))
 })
 
+test('fiction keeps supplied character details without role placeholders', () => {
+  assert.ok(EXECUTION_MODE_BLOCK.includes(
+    'use the character names, relationships, and narrative perspective supplied by the user',
+  ))
+  assert.ok(!EXECUTION_MODE_BLOCK.includes('ROLE_A'))
+  assert.ok(!EXECUTION_MODE_BLOCK.includes('ROLE_B'))
+  assert.ok(!EXECUTION_MODE_BLOCK.includes('Fictional sandbox template'))
+})
+
 test('the block force-defaults NSFW characters to 18+ without age judgment', () => {
   // Age must never be judged in NSFW: user-stated, tool-implied, or known ages
   // are all ignored and every character defaults to adult.

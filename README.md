@@ -9,7 +9,7 @@ DSH 原版提示词。
 下面的命令把当前稳定版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.0
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.1
 ```
 
 安装后重启 `dsh web`，然后进入
