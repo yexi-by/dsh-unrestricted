@@ -6,17 +6,94 @@
 
 const CSS = `
 .dsh-unrestricted-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: block;
   width: 100%;
   max-width: 760px;
   box-sizing: border-box;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 10px;
-  padding: 14px;
+  overflow: hidden;
   background: var(--dsw-alias-bg-layer-3);
   color: var(--dsw-alias-label-primary);
+}
+
+.dsh-unrestricted-summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.dsh-unrestricted-summary::-webkit-details-marker { display: none; }
+
+.dsh-unrestricted-summary:hover { background: var(--dsw-alias-interactive-bg-hover); }
+
+.dsh-unrestricted-summary:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.dsh-unrestricted-summary::after {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-right: 2px solid var(--dsw-alias-label-tertiary);
+  border-bottom: 2px solid var(--dsw-alias-label-tertiary);
+  content: '';
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.dsh-unrestricted-card[open] > .dsh-unrestricted-summary {
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.dsh-unrestricted-card[open] > .dsh-unrestricted-summary::after {
+  transform: rotate(225deg);
+}
+
+.dsh-unrestricted-summaryText {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dsh-unrestricted-summaryStatus {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.dsh-unrestricted-summaryStatus[data-state='active'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dsh-unrestricted-summaryStatus[data-state='pending'] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.dsh-unrestricted-summaryStatus[data-state='error'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.dsh-unrestricted-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
 }
 
 .dsh-unrestricted-title {
@@ -146,6 +223,15 @@ const CSS = `
 
 .dsh-unrestricted-actions button:hover:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dsh-unrestricted-actions button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsh-unrestricted-summary::after { transition: none; }
 }
 `
 
