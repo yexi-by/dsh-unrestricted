@@ -8,7 +8,7 @@
  *   verifies the anchors of the agent's preset against the live sections and
  *   returns the same section list with the persona extended in place, the
  *   execution-mode section inserted behind the persona, and boundary notes
- *   appended to the plan / code-only / structured-output sections. Tools,
+ *   appended to the plan / PTC-only / structured-output sections. Tools,
  *   contexts, and variables pass through untouched; when disabled the
  *   listener returns `next()` verbatim, so the prompt is byte-identical to
  *   the unmodified harness.

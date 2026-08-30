@@ -10,7 +10,7 @@ import { defineConfig } from 'tsdown'
 
 const ID = 'dsh-unrestricted'
 
-/** Implicit baseline answered by the rc.8 Web shell's frozen module table. */
+/** Implicit baseline answered by the alpha.1 Web shell's frozen module table. */
 const EXTERNALS: readonly string[] = [
   'react',
   'react/jsx-runtime',
@@ -19,7 +19,6 @@ const EXTERNALS: readonly string[] = [
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-client-ui-primitives',
-  '@deepseek-ai/dsh-client-runtime/client',
 ]
 
 export default defineConfig({

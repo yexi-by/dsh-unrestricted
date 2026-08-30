@@ -7,7 +7,7 @@
  *
  * Asserts the acceptance contract:
  * - off: every mode's prompt and tool catalog are identical to no-plugin baselines
- * - on: standard/code/cordis/minimal and a delegated subagent all get the fused
+ * - on: standard/ptc/cordis/minimal and a delegated subagent all get the fused
  *   prompt; tools/contexts stay identical; plan mode flips the plan section only
  * - minimal works for sessions created before AND after the toggle
  * - toggling back off restores the original prompt everywhere
@@ -47,7 +47,6 @@ const { settingsNamespace } = await importPackage('packages/settings/settings')
 const { applyChildComposition, childSessionMeta } = await importPackage('packages/subagent/subagent')
 const rules = await import(pathToFileURL(join(pluginDir, 'src/rules.js')).href)
 
-const CONFIG_DIR = join(repo, 'apps/cli/config')
 const home = await mkdtemp(join(tmpdir(), 'dsh-unrestricted-verify-'))
 const settingsFile = join(home, 'settings.yaml')
 await writeFile(settingsFile, '{}\n')
@@ -74,6 +73,7 @@ const overrides = [
   { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', disabled: true },
+  { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [
@@ -84,13 +84,17 @@ const overrides = [
     id: 'agent-presets',
     config: {
       default: 'standard',
-      roots: [{ path: join(CONFIG_DIR, 'agent-presets'), trust: 'system' }],
+      roots: [],
+      includeShippedRoot: true,
       includeUserRoot: false,
     },
   },
 ]
 
-appBoot.healProfilesModuleFallback(join(repo, 'apps/cli/package.json'), home)
+await appBoot.healProfilesModuleFallback({
+  installAnchor: join(repo, 'apps/cli/package.json'),
+  home,
+})
 const bundlePatches = [
   ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/base/cordis.patch.yml')),
   ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/web-app/cordis.patch.yml')),
@@ -154,7 +158,7 @@ async function until(label, fn, timeoutMs = 30_000) {
 try {
   console.log('baseline (plugin installed, toggle off)')
   const baseline = {}
-  for (const id of ['standard', 'code', 'cordis', 'minimal']) {
+  for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
     baseline[id] = await assemblePrompt(await presetAgent(id))
   }
   check('standard baseline has no execution-mode block', !baseline.standard.text.includes(rules.EXECUTION_MODE_BLOCK))
@@ -169,7 +173,7 @@ try {
   await until('standard fusion', async () =>
     (await assemblePrompt(await presetAgent('standard'))).text.includes(rules.EXECUTION_MODE_BLOCK))
 
-  for (const id of ['standard', 'code', 'cordis']) {
+  for (const id of ['standard', 'ptc', 'cordis']) {
     const on = await assemblePrompt(await presetAgent(id))
     check(`${id} fused`, on.text.includes(rules.EXECUTION_MODE_BLOCK))
     check(`${id} keeps original content`, [...baseline[id].text.split('\n\n')].every(part => on.text.includes(part.replace('{{model}}', 'deepseek-chat').replace('{{cwd}}', AGENT_META.cwd))))
@@ -193,11 +197,11 @@ try {
   check('plan off: plan section gone', !planOff.text.includes('You are in plan mode.'))
   check('plan off: still fused', planOff.text.includes(rules.EXECUTION_MODE_BLOCK))
 
-  // Code mode keeps its run_code protocol.
-  const code = await assemblePrompt(await presetAgent('code'))
-  check('code keeps run_code rule', code.text.includes('`run_code` is the only tool you can call directly'))
-  check('code transport note appended', code.text.includes('this rule governs only the tool-call transport'))
-  check('code SDK section kept', code.text.includes('## Writing code for run_code'))
+  // PTC mode keeps its run_code protocol.
+  const ptc = await assemblePrompt(await presetAgent('ptc'))
+  check('ptc keeps run_code rule', ptc.text.includes('`run_code` is the only tool you can call directly'))
+  check('ptc transport note appended', ptc.text.includes('this rule governs only the tool-call transport'))
+  check('ptc SDK section kept', ptc.text.includes('## Writing code for run_code'))
 
   // Cordis keeps its framework capability text.
   const cordis = await assemblePrompt(await presetAgent('cordis'))
@@ -239,7 +243,7 @@ try {
 
   console.log('toggle off')
   await setEnabled(false)
-  for (const id of ['standard', 'code', 'cordis', 'minimal']) {
+  for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
     const off = await until(`${id} restore`, async () => {
       const prompt = await assemblePrompt(await presetAgent(id))
       return prompt.text === baseline[id].text ? prompt : false

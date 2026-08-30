@@ -14,8 +14,8 @@
       "@deepseek-ai/cordis": ["../../deepseek-harness/vendor/cordis/lib/types/index.d.ts"],
       "@deepseek-ai/dsh-client-ui-slots": ["../../deepseek-harness/packages/client/ui-slots/lib/types/index.d.ts"],
       "@deepseek-ai/dsh-client-locale/client": ["../../deepseek-harness/packages/client/locale/lib/types/client/index.d.ts"],
-      "@deepseek-ai/dsh-client-runtime/client": ["../../deepseek-harness/packages/client/runtime/lib/types/client/index.d.ts"],
       "@deepseek-ai/dsh-client-ui-settings/client": ["../../deepseek-harness/packages/client/ui-settings/lib/types/client/index.d.ts"],
+      "@deepseek-ai/dsh-client-ui-renderer/client": ["../../deepseek-harness/packages/client/ui-renderer/lib/types/client/index.d.ts"],
       "@deepseek-ai/dsh-client-ui-settings-plugins/client": ["../../deepseek-harness/packages/client/ui-settings-plugins/lib/types/client/index.d.ts"],
       "@deepseek-ai/dsh-client-connection/client": ["../../deepseek-harness/packages/client/connection/lib/types/client/index.d.ts"],
       "@deepseek-ai/dsh-api-remotes/client": ["../../deepseek-harness/packages/api/remotes/lib/types/client/index.d.ts"]

@@ -54,8 +54,8 @@ function assertNothingLost(originalSections, fusedText) {
 const CASES = [
   { label: 'standard', preset: 'standard' },
   { label: 'standard-plan', preset: 'standard' },
-  { label: 'code', preset: 'code' },
-  { label: 'code-plan', preset: 'code' },
+  { label: 'ptc', preset: 'ptc' },
+  { label: 'ptc-plan', preset: 'ptc' },
   { label: 'cordis', preset: 'cordis' },
   { label: 'cordis-plan', preset: 'cordis' },
   { label: 'subagent-standard', preset: 'standard', isSubagent: true },
@@ -87,7 +87,7 @@ for (const { label, preset, isSubagent } of CASES) {
           fusedSection.text.startsWith(original.text),
           `section "${original.name}" was rewritten instead of appended`,
         )
-        assert.ok(['deployment:persona', 'plan:policy', 'tools:code-only', 'tool:structured_output']
+        assert.ok(['deployment:persona', 'plan:policy', 'tools:ptc-only', 'tool:structured_output']
           .includes(original.name), `section "${original.name}" must not change`)
       }
     }
@@ -148,11 +148,11 @@ test('plan-mode tampering is detected only when the section is active', async ()
   assert.equal(fuseSections(onExtended, 'standard').issues, undefined)
 })
 
-test('code mode loses its run_code anchor -> incompatible', async () => {
-  const sections = await sectionsOf('code')
+test('ptc mode loses its run_code anchor -> incompatible', async () => {
+  const sections = await sectionsOf('ptc')
   const tampered = sections.map(section =>
-    section.name === 'tools:code-only' ? { ...section, text: 'call whatever' } : section)
-  assert.ok(fuseSections(tampered, 'code').issues.some(issue => issue.includes('run_code')))
+    section.name === 'tools:ptc-only' ? { ...section, text: 'call whatever' } : section)
+  assert.ok(fuseSections(tampered, 'ptc').issues.some(issue => issue.includes('run_code')))
 })
 
 test('unknown presets are refused', () => {

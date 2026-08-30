@@ -5,7 +5,7 @@
  * closure owns the controller, the slot inject face hands hooks and callbacks
  * to the component.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 // Type-only: the ctx.remote Context merge and the forwarded-event key face.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -80,7 +80,7 @@ function messageOf(error: unknown): string {
  * @param ctx - the browser plugin context (connection + remote + settingsScope injected).
  * @returns the controller whose face() feeds the slot inject share.
  */
-export function createUnrestrictedController(ctx: ClientContext) {
+export function createUnrestrictedController(ctx: Context) {
   const connection = ctx.get('connection') as ConnectionHandle
   const settings = ctx.settingsScope.bind<UnrestrictedSettings>({ namespace: SETTINGS_NS })
 

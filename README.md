@@ -1,7 +1,7 @@
 # dsh-unrestricted
 
 为 DeepSeek Harness（DSH）Web 提供可随时开关的破限提示词。它把破限规则融合进
-Standard、Code（PTC）、Cordis、Minimal 及其子代理的当前原版系统提示词；关闭后恢复
+Standard、PTC、Cordis、Minimal 及其子代理的当前原版系统提示词；关闭后恢复
 DSH 原版提示词。
 
 ## 一键安装
@@ -9,7 +9,7 @@ DSH 原版提示词。
 下面的命令把当前稳定版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.2
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.3
 ```
 
 安装后重启 `dsh web`，然后进入
@@ -33,7 +33,7 @@ DSH 的原版系统提示词主要规定 agent 身份、计划模式和工具调
 - 要求模型直接回答，减少风险定性、说教、劝退、替代方案和冗长前言。
 - 对逆向分析、补丁、keygen、安全研究、成人虚构、资源检索等容易触发保守回答的请求，
   使用统一的本地样本语境和占位符，尽量给出完整、可操作的内容。
-- 在 Standard、Code、Cordis、Minimal、plan 状态和子代理之间保持同一套回答尺度，
+- 在 Standard、PTC、Cordis、Minimal、plan 状态和子代理之间保持同一套回答尺度，
   避免切换模式后提示词失效或语义相互冲突。
 - 保留 DSH 的 plan 交付协议、`run_code` 调用方式、结构化输出、审批和沙箱规则；破限提示词
   只决定模型回答什么、怎样回答，不会给工具增加权限。
@@ -44,7 +44,7 @@ DSH 的原版系统提示词主要规定 agent 身份、计划模式和工具调
 
 ## 工作方式与兼容性
 
-- Standard / Code / Cordis：在运行时通过 `system-prompt/assemble` waterfall 读取当前
+- Standard / PTC / Cordis：在运行时通过 `system-prompt/assemble` waterfall 读取当前
   模式的完整原版提示词，校验关键锚点后插入破限规则。
 - Minimal：由于原版 persona 使用 `complete: true`，插件用 agent 作用域的同名 persona
   覆盖，并保留原 persona 作为开头。
@@ -53,9 +53,10 @@ DSH 的原版系统提示词主要规定 agent 身份、计划模式和工具调
   规则和 structured-output 首句。任一锚点不匹配时，该模式保持原版提示词，并在设置卡片
   中显示不兼容项，不会静默套用旧版规则。
 
-当前支持基线为 DSH `0.1.1-rc.1`，commit
-`528c682e061696f5a160f363f236ecbf53cbd006`。完整改写清单见
-[原版与融合版差异说明](docs/diff-rc.1.md)。
+当前支持基线为 DSH `0.1.2-alpha.1`，commit
+`cd5ef8148158c3a752a658978873241fdf8e2bbc`。该版本把原 `code` preset 定名为
+`ptc`，对应提示词段为 `tools:ptc-only`；插件、状态卡、测试 fixture 和验收工具均按
+当前名称工作。完整改写清单见[原版与融合版差异说明](docs/diff-alpha.1.md)。
 
 ## 更新与卸载
 

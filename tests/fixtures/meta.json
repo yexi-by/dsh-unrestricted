@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "528c682e061696f5a160f363f236ecbf53cbd006",
-  "capturedAt": "2026-08-22T07:38:28.120Z",
+  "commit": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+  "capturedAt": "2026-08-30T06:45:38.696Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -9,14 +9,15 @@
         "deployment:persona",
         "plan:policy",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
         "tool:ralph",
@@ -47,11 +48,12 @@
         "subagent_fork",
         "todo_write",
         "update_goal",
+        "web_fetch",
         "web_search",
         "workflow",
         "write"
       ],
-      "promptBytes": 5146
+      "promptBytes": 5700
     },
     "standard-plan": {
       "sections": [
@@ -59,14 +61,15 @@
         "deployment:persona",
         "plan:policy",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
         "tool:ralph",
@@ -97,27 +100,29 @@
         "subagent_fork",
         "todo_write",
         "update_goal",
+        "web_fetch",
         "web_search",
         "workflow",
         "write"
       ],
-      "promptBytes": 7492
+      "promptBytes": 8046
     },
-    "code": {
+    "ptc": {
       "sections": [
         "harness:identity",
         "deployment:persona",
         "plan:policy",
-        "tools:code-only",
+        "tools:ptc-only",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
         "tool:ralph",
@@ -129,23 +134,24 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36188
+      "promptBytes": 37673
     },
-    "code-plan": {
+    "ptc-plan": {
       "sections": [
         "harness:identity",
         "deployment:persona",
         "plan:policy",
-        "tools:code-only",
+        "tools:ptc-only",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
         "tool:ralph",
@@ -157,7 +163,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 38534
+      "promptBytes": 40019
     },
     "cordis": {
       "sections": [
@@ -165,17 +171,18 @@
         "deployment:persona",
         "plan:policy",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
-        "tool:workflow",
         "tool:cordis",
+        "tool:workflow",
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
@@ -211,11 +218,12 @@
         "subagent_fork",
         "todo_write",
         "update_goal",
+        "web_fetch",
         "web_search",
         "workflow",
         "write"
       ],
-      "promptBytes": 16717
+      "promptBytes": 17271
     },
     "cordis-plan": {
       "sections": [
@@ -223,17 +231,18 @@
         "deployment:persona",
         "plan:policy",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
-        "tool:workflow",
         "tool:cordis",
+        "tool:workflow",
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
@@ -269,11 +278,12 @@
         "subagent_fork",
         "todo_write",
         "update_goal",
+        "web_fetch",
         "web_search",
         "workflow",
         "write"
       ],
-      "promptBytes": 19063
+      "promptBytes": 19617
     },
     "minimal": {
       "sections": [
@@ -291,14 +301,15 @@
         "deployment:persona",
         "plan:policy",
         "context:file-reference",
+        "tool:pwsh",
         "tool:read",
         "tool:write",
         "tool:edit",
         "tool:glob",
         "tool:grep",
-        "tool:pwsh",
         "tool:jobs",
         "tool:web_search",
+        "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
         "tool:ralph",
@@ -329,11 +340,12 @@
         "subagent_fork",
         "todo_write",
         "update_goal",
+        "web_fetch",
         "web_search",
         "workflow",
         "write"
       ],
-      "promptBytes": 5146
+      "promptBytes": 5700
     }
   }
 }

@@ -152,7 +152,7 @@ try {
 
   const perMode = {
     standard: ['Use the read tool', 'Use the web_search tool'],
-    code: ['`run_code` is the only tool you can call directly', '## Writing code for run_code'],
+    ptc: ['`run_code` is the only tool you can call directly', '## Writing code for run_code'],
     cordis: ['# Dynamic Cordis Plugins', 'NEVER edit or delete the shipped preset install'],
   }
   for (const [preset, needles] of Object.entries(perMode)) {
@@ -167,7 +167,7 @@ try {
     console.log(`  ${preset}: ${request.tools.length} tools on the wire [${request.tools.slice(0, 6).join(', ')}…]`)
   }
 
-  // Code mode: run_code transport assertion happens inside the loop above.
+  // PTC mode: run_code transport assertion happens inside the loop above.
 
   // A fresh minimal session (created while ON) must also be fused, with the
   // same tools this machine's minimal preset had while OFF.

@@ -36,8 +36,8 @@ SOFTWARE.
 ## DeepSeek Harness
 
 `src/rules.js` 中的兼容锚点和 `tests/fixtures/` 中的原版提示词来自
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/528c682e061696f5a160f363f236ecbf53cbd006)
-`0.1.1-rc.1`。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/cd5ef8148158c3a752a658978873241fdf8e2bbc)
+`0.1.2-alpha.1`。
 
 原项目使用以下许可证：
 

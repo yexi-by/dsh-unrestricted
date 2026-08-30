@@ -43,7 +43,6 @@ const { SessionId } = await importPackage('packages/core/session')
 const { renderPrompt } = await importPackage('packages/core/system-prompt')
 const { applyChildComposition, childSessionMeta } = await importPackage('packages/subagent/subagent')
 
-const CONFIG_DIR = join(repo, 'apps/cli/config')
 const BASE_PATCH = join(repo, 'packages/bundle/base/cordis.patch.yml')
 const WEB_PATCH = join(repo, 'packages/bundle/web-app/cordis.patch.yml')
 const INSTALL_ANCHOR = join(repo, 'apps/cli/package.json')
@@ -61,6 +60,7 @@ const overrides = [
   { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', disabled: true },
+  { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [
@@ -71,13 +71,14 @@ const overrides = [
     id: 'agent-presets',
     config: {
       default: 'standard',
-      roots: [{ path: join(CONFIG_DIR, 'agent-presets'), trust: 'system' }],
+      roots: [],
+      includeShippedRoot: true,
       includeUserRoot: false,
     },
   },
 ]
 
-appBoot.healProfilesModuleFallback(INSTALL_ANCHOR, home)
+await appBoot.healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home })
 const profileDir = join(home, 'profiles', 'spec')
 await mkdir(profileDir, { recursive: true })
 const rootConfig = join(profileDir, 'cordis.yml')
@@ -138,7 +139,7 @@ async function withPreset(id, fn) {
   }
 }
 
-for (const id of ['standard', 'code', 'cordis', 'minimal']) {
+for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
   await withPreset(id, async (agent) => {
     await dumpAgent(id, agent)
     if (id === 'minimal') return

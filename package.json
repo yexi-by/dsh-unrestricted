@@ -1,8 +1,8 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
-  "description": "Toggleable unrestricted mode for DSH Web: fuses the unrestricted execution mode into each preset's original system prompt (standard/code/cordis/minimal + subagents), with per-mode anchor verification and automatic fallback to the stock prompt",
+  "description": "Toggleable unrestricted mode for DSH Web: fuses the unrestricted execution mode into each preset's original system prompt (standard/ptc/cordis/minimal + subagents), with per-mode anchor verification and automatic fallback to the stock prompt",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
         "@deepseek-ai/dsh-client-connection",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-api-remotes",
-        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-settings-plugins"
       ]
@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/rules.spec.mjs",
+    "test": "node --test tests/*.spec.mjs",
     "dump-prompts": "node tools/dump-prompts.mjs --repo ../../deepseek-harness --out tests/fixtures"
   },
   "devDependencies": {

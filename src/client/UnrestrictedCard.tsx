@@ -18,7 +18,7 @@ export type UnrestrictedCardProps =
 /** Mode rows in display order, with their locale label keys. */
 const MODE_ROWS: ReadonlyArray<{ id: string; labelKey: UnrestrictedLocaleKey }> = [
   { id: 'standard', labelKey: 'modeStandard' },
-  { id: 'code', labelKey: 'modeCode' },
+  { id: 'ptc', labelKey: 'modePtc' },
   { id: 'cordis', labelKey: 'modeCordis' },
   { id: 'minimal', labelKey: 'modeMinimal' },
 ]
