@@ -9,7 +9,7 @@ DSH 原版提示词。
 下面的命令把当前稳定版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.3
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.4
 ```
 
 安装后重启 `dsh web`，然后进入
@@ -42,21 +42,20 @@ DSH 的原版系统提示词主要规定 agent 身份、计划模式和工具调
 优先级规则。开关只影响下一次请求和之后新建的子代理，不会改写正在执行的请求、工具
 定义、权限配置或既有会话历史。
 
-## 工作方式与兼容性
+## 工作方式
 
 - Standard / PTC / Cordis：在运行时通过 `system-prompt/assemble` waterfall 读取当前
   模式的完整原版提示词，校验关键锚点后插入破限规则。
 - Minimal：由于原版 persona 使用 `complete: true`，插件用 agent 作用域的同名 persona
   覆盖，并保留原 persona 作为开头。
 - 子代理和 plan 状态：沿用父模式的融合结果，同时保留结构化输出与 plan 协议。
-- 兼容检查：每次融合前核对 harness 身份、各模式 persona、plan 段首句、`run_code`
-  规则和 structured-output 首句。任一锚点不匹配时，该模式保持原版提示词，并在设置卡片
-  中显示不兼容项，不会静默套用旧版规则。
+- 当前提示词校验：每次融合前核对 harness 身份、各模式 persona、plan 段首句、`run_code`
+  规则和 structured-output 首句。校验未通过时，该模式保持原版提示词，并在设置卡片中显示
+  具体问题。
 
-当前支持基线为 DSH `0.1.2-alpha.1`，commit
-`cd5ef8148158c3a752a658978873241fdf8e2bbc`。该版本把原 `code` preset 定名为
-`ptc`，对应提示词段为 `tools:ptc-only`；插件、状态卡、测试 fixture 和验收工具均按
-当前名称工作。完整改写清单见[原版与融合版差异说明](docs/diff-alpha.1.md)。
+插件直接面向 DSH 当前 `master`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
+字符串 settings namespace。完整改写清单见
+[当前 master 提示词融合说明](docs/prompt-fusion.md)。
 
 ## 更新与卸载
 
@@ -82,7 +81,7 @@ codex-keysmith 由 Jia-Ethan 以 MIT License 发布。原作者版权和许可�
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本项目自身同样使用
 [MIT License](LICENSE)。
 
-仓库中的版本锚点和测试 fixtures 还包含 DeepSeek Harness 的原版提示词片段；对应的
+仓库中的当前提示词锚点和测试 fixtures 还包含 DeepSeek Harness 的原版提示词片段；对应的
 DeepSeek 版权与 MIT 许可也保留在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 从源码开发
@@ -119,7 +118,7 @@ node tools/verify-server.mjs --base http://127.0.0.1:5199
 
 ```text
 src/rules.js     锚点、破限提示词和融合纯函数
-src/node.js      host 端：提示词改写、设置开关和兼容状态
+src/node.js      host 端：提示词改写、设置开关和当前提示词校验状态
 src/client/      Web 端：设置卡片、开关和各模式状态
 lib/client.js    随仓库提交的 Web 构建产物
 tests/           规则测试与 DSH 原版提示词 fixtures

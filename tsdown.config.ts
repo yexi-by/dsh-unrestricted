@@ -10,7 +10,7 @@ import { defineConfig } from 'tsdown'
 
 const ID = 'dsh-unrestricted'
 
-/** Implicit baseline answered by the alpha.1 Web shell's frozen module table. */
+/** Platform modules supplied by the current Web shell. */
 const EXTERNALS: readonly string[] = [
   'react',
   'react/jsx-runtime',

@@ -43,7 +43,6 @@ const appBoot = await importPackage('packages/boot/app-boot')
 const cmdline = await importPackage('packages/boot/cmdline')
 const { SessionId } = await importPackage('packages/core/session')
 const { renderPrompt } = await importPackage('packages/core/system-prompt')
-const { settingsNamespace } = await importPackage('packages/settings/settings')
 const { applyChildComposition, childSessionMeta } = await importPackage('packages/subagent/subagent')
 const rules = await import(pathToFileURL(join(pluginDir, 'src/rules.js')).href)
 
@@ -141,7 +140,7 @@ async function assemblePrompt(agent) {
 }
 
 async function setEnabled(enabled) {
-  await ctx.settings.update(settingsNamespace('unrestricted'), { enabled })
+  await ctx.settings.update('unrestricted', { enabled })
 }
 
 /** Poll until the predicate holds or the deadline passes. */

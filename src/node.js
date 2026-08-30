@@ -17,9 +17,9 @@
  *   minimal agents (joined or later created) the plugin shadows
  *   `deployment:persona` at agent scope with a complete section carrying the
  *   fused minimal prompt.
- * - Anchor failures (startup standing-scope check or any live assembly) mark
- *   the preset incompatible: its prompt passes through unchanged and the
- *   settings card shows the failure. Nothing stale is ever delivered.
+ * - Anchor failures (startup standing-scope check or any live assembly) leave
+ *   that prompt unchanged and show the failed current-master invariant in the
+ *   settings card.
  *
  * The toggle lives in the `unrestricted` settings namespace (persisted to
  * $DSH_HOME/settings.yaml). Switching affects the NEXT assembly of any live
@@ -27,8 +27,7 @@
  */
 import z from '@deepseek-ai/schemastery'
 import {
-  ANCHORS, PRESETS, PRESET_RULES, SUPPORTED_COMMIT, SUPPORTED_VERSION,
-  fuseSections, fusedMinimalPrompt,
+  ANCHORS, PRESETS, PRESET_RULES, fuseSections, fusedMinimalPrompt,
 } from './rules.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
@@ -169,7 +168,7 @@ export function apply(ctx) {
     clearShadows()
   }
 
-  /** Current card view: toggle, per-preset state, and the build this plugin supports. */
+  /** Current card view: toggle and per-preset state. */
   function statusPayload() {
     const modes = {}
     for (const presetId of PRESETS) {
@@ -179,15 +178,11 @@ export function apply(ctx) {
           ? 'off'
           : !state.startup.has(presetId)
             ? 'checking'
-            : issues.length > 0 ? 'incompatible' : 'active',
+            : issues.length > 0 ? 'failed' : 'active',
         issues,
       }
     }
-    return {
-      enabled: state.enabled,
-      modes,
-      supported: { version: SUPPORTED_VERSION, commit: SUPPORTED_COMMIT },
-    }
+    return { enabled: state.enabled, modes }
   }
 
   /** RPC endpoint handler for the settings card. */

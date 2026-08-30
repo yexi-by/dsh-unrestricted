@@ -19,7 +19,7 @@ export interface UnrestrictedSettings {
 
 /** Per-preset fusion state reported by the host half. */
 export interface UnrestrictedModeState {
-  state: 'off' | 'checking' | 'active' | 'incompatible'
+  state: 'off' | 'checking' | 'active' | 'failed'
   issues: string[]
 }
 
@@ -27,7 +27,6 @@ export interface UnrestrictedModeState {
 export interface UnrestrictedStatus {
   enabled: boolean
   modes: Record<string, UnrestrictedModeState>
-  supported: { version: string; commit: string }
 }
 
 /** Full view snapshot the card subscribes to. */
@@ -132,7 +131,7 @@ export function createUnrestrictedController(ctx: Context) {
   async function setEnabled(enabled: boolean): Promise<void> {
     await settings.set('enabled', enabled)
     publish()
-    // The host applies the toggle on the same commit; give it one turn first.
+    // Give the host settings watcher one turn before reading its derived state.
     setTimeout(() => void refresh(), 300)
   }
 

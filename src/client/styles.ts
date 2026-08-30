@@ -183,7 +183,7 @@ const CSS = `
   background: var(--dsw-alias-state-business-primary);
 }
 
-.dsh-unrestricted-dot[data-state='incompatible'] {
+.dsh-unrestricted-dot[data-state='failed'] {
   background: var(--dsw-alias-state-error-primary);
 }
 

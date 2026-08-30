@@ -28,7 +28,7 @@ function stateKey(mode: UnrestrictedModeState | undefined): UnrestrictedLocaleKe
   switch (mode?.state) {
     case 'active': return 'stateActive'
     case 'checking': return 'stateChecking'
-    case 'incompatible': return 'stateIncompatible'
+    case 'failed': return 'stateValidationFailed'
     default: return 'stateOff'
   }
 }
@@ -42,17 +42,17 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   const { t } = props
   const view = props.useView(snapshot => snapshot)
   const status = view.status
-  const hasIncompatibleMode = status !== null
-    && Object.values(status.modes).some(mode => mode.state === 'incompatible')
+  const hasFailedMode = status !== null
+    && Object.values(status.modes).some(mode => mode.state === 'failed')
   const summaryKey: UnrestrictedLocaleKey = view.settingsStatus === 'loading'
     ? 'summaryLoading'
     : view.settingsStatus === 'unavailable'
       ? 'summaryUnavailable'
-      : hasIncompatibleMode
-        ? 'summaryIncompatible'
+      : hasFailedMode
+        ? 'summaryValidationFailed'
         : view.enabled ? 'summaryEnabled' : 'summaryDisabled'
   const summaryState = view.settingsStatus === 'ready'
-    ? hasIncompatibleMode ? 'error' : view.enabled ? 'active' : 'off'
+    ? hasFailedMode ? 'error' : view.enabled ? 'active' : 'off'
     : 'pending'
   return (
     <details className="dsh-unrestricted-card">
@@ -96,12 +96,6 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
           })}
         </ul>
         <p className="dsh-unrestricted-note">{t('subagentNote')}</p>
-        {status !== null && (
-          <p className="dsh-unrestricted-note">
-            {t('supported')}
-            {` DSH ${status.supported.version}（${status.supported.commit.slice(0, 7)}）。`}
-          </p>
-        )}
         <p className="dsh-unrestricted-note">{t('scopeNote')}</p>
         <div className="dsh-unrestricted-actions">
           <button type="button" onClick={() => { void props.recheck() }}>{t('recheck')}</button>

@@ -148,7 +148,7 @@ test('plan-mode tampering is detected only when the section is active', async ()
   assert.equal(fuseSections(onExtended, 'standard').issues, undefined)
 })
 
-test('ptc mode loses its run_code anchor -> incompatible', async () => {
+test('ptc mode reports a changed run_code anchor', async () => {
   const sections = await sectionsOf('ptc')
   const tampered = sections.map(section =>
     section.name === 'tools:ptc-only' ? { ...section, text: 'call whatever' } : section)

@@ -1,19 +1,14 @@
 /**
- * dsh-unrestricted fusion rules: verbatim anchors for the shipped DSH prompts
+ * dsh-unrestricted fusion rules: verbatim anchors for the current master prompts
  * and the pure functions that fuse the unrestricted execution mode into them.
  *
- * Every rewrite is anchored on exact original text captured from the installed
- * harness (see tools/dump-prompts.mjs and tests/fixtures/). An anchor that no
- * longer matches means the harness changed underneath us: callers must then
- * leave the original prompt untouched and surface the incompatibility instead
- * of silently shipping a stale prompt.
+ * Every rewrite is anchored on exact original text captured from master (see
+ * tools/dump-prompts.mjs and tests/fixtures/). When an anchor no longer
+ * matches, callers leave the current prompt untouched and surface the failed
+ * invariant.
  *
  * @module dsh-unrestricted/rules
  */
-
-/** DSH build these anchors were captured from (apps/cli package version + commit). */
-export const SUPPORTED_VERSION = '0.1.2-alpha.1'
-export const SUPPORTED_COMMIT = 'cd5ef8148158c3a752a658978873241fdf8e2bbc'
 
 /** Exact original section texts / prefixes, verified per assembly before any rewrite. */
 export const ANCHORS = {
