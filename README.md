@@ -74,7 +74,7 @@ dsh plugin --profile web remove dsh-unrestricted
 [Jia-Ethan/codex-keysmith](https://github.com/Jia-Ethan/codex-keysmith) 项目中的
 [`gpt-unrestricted.md`](https://github.com/Jia-Ethan/codex-keysmith/blob/601a449b05a86576cf0ad93d7b9fffb89da302ca/examples/gpt-unrestricted.md)
 为参考并进行了二次创作；主要改动是适配 DSH 的多模式提示词组装、plan、子代理、工具
-协议、权限边界、版本锚点校验和 Web 开关。本项目与 codex-keysmith 及其作者没有隶属或
+协议、权限边界、提示词锚点校验和 Web 开关。本项目与 codex-keysmith 及其作者没有隶属或
 官方合作关系。
 
 codex-keysmith 由 Jia-Ethan 以 MIT License 发布。原作者版权和许可全文保留在
@@ -110,8 +110,6 @@ node tools/dump-prompts.mjs --repo <deepseek-harness-path> --out tests/fixtures
 # 组合真实 Web profile，验证开关前后的提示词和工具目录（不调用模型）
 node tools/verify-live.mjs --repo <deepseek-harness-path>
 
-# 驱动正在运行的 dsh web，核对实际发给模型的提示词（会产生模型调用）
-node tools/verify-server.mjs --base http://127.0.0.1:5199
 ```
 
 ## 目录

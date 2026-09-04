@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "0a53fb55bea101816fa226bb964ae2bed71c343b",
-  "capturedAt": "2026-08-30T22:38:26.758Z",
+  "commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "capturedAt": "2026-09-04T22:20:48.655Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -124,7 +124,6 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:workflow",
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
@@ -134,7 +133,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 37673
+      "promptBytes": 33808
     },
     "ptc-plan": {
       "sections": [
@@ -153,7 +152,6 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:workflow",
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
@@ -163,7 +161,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 40019
+      "promptBytes": 36154
     },
     "cordis": {
       "sections": [

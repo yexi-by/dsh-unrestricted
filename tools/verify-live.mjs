@@ -66,12 +66,15 @@ await writeFile(rootConfig, '[]\n')
 const overrides = [
   { id: 'settings', config: { path: settingsFile, watch: false } },
   { id: 'storage-json', config: { root: join(home, 'storages') } },
+  { id: 'session-persistence-jsonl', config: { root: join(home, 'sessions') } },
   { id: 'webserver', disabled: true },
   { id: 'web-runtime', disabled: true },
   { id: 'session-telemetry-otel', disabled: true },
   { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', disabled: true },
+  { id: 'session-controller', disabled: true },
+  { id: 'file-upload', disabled: true },
   { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
@@ -211,7 +214,7 @@ try {
   const parent = await presetAgent('standard')
   const child = await parent.ctx.agents.create({
     sessionId: SessionId('verify-subagent'),
-    meta: childSessionMeta(parent, 1, 0),
+    meta: childSessionMeta(parent, 1, false),
     agentOptions: AGENT_OPTIONS,
     setup: (agentCtx) => { applyChildComposition(agentCtx, parent, {}) },
   })

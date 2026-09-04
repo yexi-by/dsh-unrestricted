@@ -54,12 +54,15 @@ await writeFile(settingsFile, '{}\n')
 const overrides = [
   { id: 'settings', config: { path: settingsFile, watch: false } },
   { id: 'storage-json', config: { root: join(home, 'storages') } },
+  { id: 'session-persistence-jsonl', config: { root: join(home, 'sessions') } },
   { id: 'webserver', disabled: true },
   { id: 'web-runtime', disabled: true },
   { id: 'session-telemetry-otel', disabled: true },
   { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', disabled: true },
+  { id: 'session-controller', disabled: true },
+  { id: 'file-upload', disabled: true },
   { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
@@ -125,9 +128,10 @@ async function dumpAgent(label, agent) {
   return assembly
 }
 
+let dumpIndex = 0
 async function withPreset(id, fn) {
   const handle = await ctx.agents.create({
-    sessionId: SessionId(`dump-${id}`),
+    sessionId: SessionId(`dump-${id}-${dumpIndex++}`),
     meta: { cwd: FIXTURE_CWD },
     agentOptions: { provider: 'deepseek', model: 'deepseek-chat' },
     setup: agentCtx => ctx.agentPresets.mount(agentCtx, id).then(() => undefined),
@@ -152,7 +156,7 @@ for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
 await withPreset('standard', async (parent) => {
   const child = await parent.ctx.agents.create({
     sessionId: SessionId('dump-subagent-standard'),
-    meta: childSessionMeta(parent, 1, 0),
+    meta: childSessionMeta(parent, 1, false),
     agentOptions: { provider: 'deepseek', model: 'deepseek-chat' },
     setup: (agentCtx) => { applyChildComposition(agentCtx, parent, {}) },
   })
