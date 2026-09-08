@@ -36,8 +36,8 @@ SOFTWARE.
 ## DeepSeek Harness
 
 `src/rules.js` 中的当前提示词锚点和 `tests/fixtures/` 中的原版提示词来自
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/d347e703908d0406b7a7ef80e3a0e594d86b2215)
-`0.1.3-alpha.1`。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/c389f96bf3a9b6807cb71ed6bdad5849be0df6d8)
+`0.1.3-alpha.2`。
 
 原项目使用以下许可证：
 

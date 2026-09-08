@@ -1,6 +1,6 @@
 [
   {
-    "name": "deployment:persona",
+    "name": "deployment:persona-prefix",
     "text": "You are a helpful software engineer assistant."
   }
 ]

@@ -15,7 +15,7 @@
  * - `minimal` registers its persona with `complete: true`, which the registry
  *   restores AFTER the waterfall, so waterfall edits cannot reach it. For
  *   minimal agents (joined or later created) the plugin shadows
- *   `deployment:persona` at agent scope with a complete section carrying the
+ *   `deployment:persona-prefix` at agent scope with a complete section carrying the
  *   fused minimal prompt.
  * - Anchor failures (startup standing-scope check or any live assembly) leave
  *   that prompt unchanged and show the failed current-master invariant in the
@@ -137,7 +137,7 @@ export function apply(ctx) {
     }
     if (presetId !== 'minimal') return
     const dispose = agent.ctx.systemPrompt.section({
-      name: 'deployment:persona',
+      name: 'deployment:persona-prefix',
       order: 0,
       complete: true,
       text: state.fusedMinimal,
@@ -259,10 +259,9 @@ export function apply(ctx) {
     }
   }, 'dsh-unrestricted: toggle lifecycle')
 
-  // The status channel is optional: headless compositions carry no connection
-  // service, while the web profile serves the settings card over loopback RPC.
+  // Web 状态通道由官方 Connection 认证；headless 组合无需提供 connection 服务。
   ctx.inject(['connection'], (connectionCtx) => {
-    const disposeRpc = connectionCtx.connection.rpc.handle(RPC_CHANNEL, handleRpc, { authority: 'loopback' })
+    const disposeRpc = connectionCtx.connection.rpc.handle(RPC_CHANNEL, handleRpc)
     return async () => {
       await disposeRpc()
     }

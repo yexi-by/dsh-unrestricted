@@ -63,6 +63,7 @@ const overrides = [
   { id: 'connection', disabled: true },
   { id: 'session-controller', disabled: true },
   { id: 'file-upload', disabled: true },
+  { id: 'open-in-app', disabled: true },
   { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },

@@ -1,15 +1,17 @@
 # 当前 master 提示词融合说明
 
-本文记录 dsh-unrestricted 在 DSH `0.1.3-alpha.1`（master `d347e70390`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。纯提示词验证关闭依赖 HTTP Connection 的文件上传与会话控制入口。
+本文记录 dsh-unrestricted 在 DSH `0.1.3-alpha.2`（master `c389f96bf3`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。纯提示词验证关闭依赖 HTTP Connection 的文件上传、会话控制与在应用中打开入口。
 
 ## 融合规则
 
 插件保留原版全部提示词段、动态上下文、工具 schema 与变量，并做四项定向追加：
 
-1. 在 `deployment:persona` 末尾加入执行模式指针。
+1. 在 `deployment:persona-prefix` 末尾加入执行模式指针。
 2. 在 persona 后插入 `unrestricted:execution-mode` 段。
 3. plan 激活时，在 `plan:policy` 末尾说明 plan 负责交付与变更范围，执行模式负责内容尺度。
 4. PTC 与结构化子代理分别在 `tools:ptc-only`、`tool:structured_output` 末尾保留其交付协议。
+
+本体把 persona 拆为 prefix 与 suffix；插件只扩展 prefix，工作目录等 suffix 内容保留在本体安排的末尾。
 
 融合段决定回答内容与表达尺度。工具目录、调用协议、plan、审批、沙箱、结构化输出和模式范围继续由 DSH 原版规则决定。
 
@@ -29,7 +31,7 @@ Cordis 保留完整的两平面 persona、动态 Cordis 工具说明和其余工
 
 ### Minimal
 
-Minimal 的 `deployment:persona` 使用 `complete: true`。插件在 agent 作用域注册同名完整 persona，使其成为“原单句 persona + 指针 + 执行模式段”；关闭开关时移除该作用域覆盖。完整 persona 最终成为唯一提示词段，因此插件使用自身的有限顺序值，不依赖仓内 section 顺序名称。
+Minimal 的 `deployment:persona-prefix` 使用 `complete: true`。插件在 agent 作用域注册同名完整 persona，使其成为“原单句 persona + 指针 + 执行模式段”；关闭开关时移除该作用域覆盖。完整 persona 最终成为唯一提示词段，因此插件使用自身的有限顺序值，不依赖仓内 section 顺序名称。
 
 ### 子代理
 

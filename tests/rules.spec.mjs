@@ -75,7 +75,7 @@ for (const { label, preset, isSubagent } of CASES) {
     assert.equal(fusedNames.filter(name => name === BLOCK_SECTION).length, 1)
 
     // The block sits directly behind the persona.
-    assert.equal(fusedNames.indexOf(BLOCK_SECTION), fusedNames.indexOf('deployment:persona') + 1)
+    assert.equal(fusedNames.indexOf(BLOCK_SECTION), fusedNames.indexOf('deployment:persona-prefix') + 1)
     assert.equal(fused.find(section => section.name === BLOCK_SECTION).text, EXECUTION_MODE_BLOCK)
 
     // Every changed section keeps its original text as a strict prefix.
@@ -87,7 +87,7 @@ for (const { label, preset, isSubagent } of CASES) {
           fusedSection.text.startsWith(original.text),
           `section "${original.name}" was rewritten instead of appended`,
         )
-        assert.ok(['deployment:persona', 'plan:policy', 'tools:ptc-only', 'tool:structured_output']
+        assert.ok(['deployment:persona-prefix', 'plan:policy', 'tools:ptc-only', 'tool:structured_output']
           .includes(original.name), `section "${original.name}" must not change`)
       }
     }
@@ -126,9 +126,11 @@ test('tampered anchors refuse to fuse and name the failing rule', async () => {
   assert.ok(fuseSections(identity, 'standard').issues.some(issue => issue.includes('identity')))
 
   const persona = sections.map(section =>
-    section.name === 'deployment:persona' ? { ...section, text: 'You are someone else.' } : section)
+    section.name === 'deployment:persona-prefix' ? { ...section, text: 'You are someone else.' } : section)
   const personaResult = fuseSections(persona, 'standard')
   assert.ok(personaResult.issues.some(issue => issue.includes('persona')))
+  const missingPersona = sections.filter(section => section.name !== 'deployment:persona-prefix')
+  assert.ok(fuseSections(missingPersona, 'standard').issues.some(issue => issue.includes('persona')))
   // A delegated child may carry its own persona: tolerated, still fused.
   const tolerated = fuseSections(persona, 'standard', { isSubagent: true })
   assert.equal(tolerated.issues, undefined)

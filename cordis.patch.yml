@@ -1,3 +1,8 @@
+# Web 私有 RPC 需要 Connection 自身持有 webServer；保留官方 Web 配置的 webRuntime 依赖。
+- id: connection
+  name: '@deepseek-ai/dsh-client-connection'
+  inject: [webRuntime, webServer]
+
 # dsh-unrestricted bundle layer: one row mounts the plugin's node half; the
 # browser half is discovered through the package's dsh.client manifest and
 # served by the client-module registry. Prompt fusion happens in the node

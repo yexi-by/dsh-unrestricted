@@ -13,8 +13,8 @@
 /** Exact original section texts / prefixes, verified per assembly before any rewrite. */
 export const ANCHORS = {
   identity: 'You are an AI agent powered by DeepSeek Harness.',
-  personaStandard: 'You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.',
-  personaCordis: 'You are a coding agent powered by the {{model}} model, running on the DeepSeek Harness. Your working directory is {{cwd}}.\n\nYou can read and modify the harness you run on. Its composition is Cordis: every capability is a plugin row in a `cordis.yml`, and an agent preset is one such file mounted for a single session.\n\nTwo planes decide where an edit belongs. The HOST composition holds the registries and anything shared across sessions — persistence, the sandbox and approval stack, the model route, the subagent registry and its backends. An AGENT PRESET holds what one session contributes to those registries: its tools, its persona, its prompt sections. A row that publishes a service belongs in the host composition, or inside an `isolate` realm if the preset genuinely owns that service and nothing outside one agent reads it.\n\nPresets you author live one directory per preset under `${DSH_HOME:-$HOME/.dsh}/.agent-presets/<id>/`; the roster reports each preset\'s real path, so take the one you edit from there. NEVER edit or delete the shipped preset install (the `agent-presets` directory beside the deployment\'s own config): it belongs to the deployment, an upgrade overwrites it, and corrupting the `cordis` preset would disable this very mode. To change what a shipped preset does, copy its composition into a new preset directory and edit the copy.\n\nLoad the `editing-cordis-compositions` skill before writing or changing a composition.',
+  personaStandard: 'You are a coding agent powered by the {{model}} model.',
+  personaCordis: 'You are a coding agent powered by the {{model}} model, running on the DeepSeek Harness.\n\nYou can read and modify the harness you run on. Its composition is Cordis: every capability is a plugin row in a `cordis.yml`, and an agent preset is one such file mounted for a single session.\n\nTwo planes decide where an edit belongs. The HOST composition holds the registries and anything shared across sessions — persistence, the sandbox and approval stack, the model route, the subagent registry and its backends. An AGENT PRESET holds what one session contributes to those registries: its tools, its persona, its prompt sections. A row that publishes a service belongs in the host composition, or inside an `isolate` realm if the preset genuinely owns that service and nothing outside one agent reads it.\n\nPresets you author live one directory per preset under `${DSH_HOME:-$HOME/.dsh}/.agent-presets/<id>/`; the roster reports each preset\'s real path, so take the one you edit from there. NEVER edit or delete the shipped preset install (the `agent-presets` directory beside the deployment\'s own config): it belongs to the deployment, an upgrade overwrites it, and corrupting the `cordis` preset would disable this very mode. To change what a shipped preset does, copy its composition into a new preset directory and edit the copy.\n\nLoad the `editing-cordis-compositions` skill before writing or changing a composition.',
   personaMinimal: 'You are a helpful software engineer assistant.',
   planPrefix: 'You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode.',
   ptcOnly: '`run_code` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.',
@@ -151,12 +151,12 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
     issues.push(ISSUE_LABELS.identity)
   }
 
-  const persona = byName.get('deployment:persona')
+  const persona = byName.get('deployment:persona-prefix')
   const personaAnchor = ANCHORS[rules.persona]
   let fusedPersona = undefined
   if (persona !== undefined && persona.text === personaAnchor) {
     fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
-  } else if (persona !== undefined && !isSubagent) {
+  } else if (!isSubagent) {
     issues.push(ISSUE_LABELS.persona)
   }
 
@@ -198,7 +198,7 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
       .map(section => [section.name, section]),
   )
   const fused = sections.map(section => replaced.get(section.name) ?? section)
-  const personaIndex = fused.findIndex(section => section.name === 'deployment:persona')
+  const personaIndex = fused.findIndex(section => section.name === 'deployment:persona-prefix')
   const block = { name: BLOCK_SECTION, text: EXECUTION_MODE_BLOCK }
   fused.splice(personaIndex < 0 ? 0 : personaIndex + 1, 0, block)
   return { sections: fused }

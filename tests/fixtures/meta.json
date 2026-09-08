@@ -1,12 +1,12 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
-  "capturedAt": "2026-09-04T22:20:48.655Z",
+  "commit": "c389f96bf3a9b6807cb71ed6bdad5849be0df6d8",
+  "capturedAt": "2026-09-08T11:27:43.522Z",
   "dumps": {
     "standard": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "context:file-reference",
         "tool:pwsh",
@@ -23,7 +23,8 @@
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
@@ -53,12 +54,12 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5700
+      "promptBytes": 5701
     },
     "standard-plan": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "context:file-reference",
         "tool:pwsh",
@@ -75,7 +76,8 @@
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
@@ -105,12 +107,12 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 8046
+      "promptBytes": 8047
     },
     "ptc": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "tools:ptc-only",
         "context:file-reference",
@@ -128,17 +130,18 @@
         "tool:subagent",
         "tool:subagent_fork",
         "tools:sdk",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "run_code"
       ],
-      "promptBytes": 33808
+      "promptBytes": 33809
     },
     "ptc-plan": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "tools:ptc-only",
         "context:file-reference",
@@ -156,17 +159,18 @@
         "tool:subagent",
         "tool:subagent_fork",
         "tools:sdk",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36154
+      "promptBytes": 36155
     },
     "cordis": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "context:file-reference",
         "tool:pwsh",
@@ -184,7 +188,8 @@
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
@@ -221,12 +226,12 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 17271
+      "promptBytes": 17272
     },
     "cordis-plan": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "context:file-reference",
         "tool:pwsh",
@@ -244,7 +249,8 @@
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
@@ -281,11 +287,11 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 19617
+      "promptBytes": 19618
     },
     "minimal": {
       "sections": [
-        "deployment:persona"
+        "deployment:persona-prefix"
       ],
       "tools": [
         "pwsh",
@@ -296,7 +302,7 @@
     "subagent-standard": {
       "sections": [
         "harness:identity",
-        "deployment:persona",
+        "deployment:persona-prefix",
         "plan:policy",
         "context:file-reference",
         "tool:pwsh",
@@ -313,7 +319,8 @@
         "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
-        "ui:deliverable-file-references"
+        "ui:deliverable-file-references",
+        "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
@@ -343,7 +350,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5700
+      "promptBytes": 5701
     }
   }
 }
