@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "Toggleable unrestricted mode for the current DSH master: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
   "license": "MIT",
