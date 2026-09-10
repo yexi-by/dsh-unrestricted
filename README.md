@@ -53,7 +53,7 @@ DSH 的原版系统提示词主要规定 agent 身份、计划模式和工具调
   规则和 structured-output 首句。校验未通过时，该模式保持原版提示词，并在设置卡片中显示
   具体问题。
 
-插件直接面向 DSH `0.1.3-alpha.2` 的 master `c389f96bf3`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
+插件直接面向 DSH `0.1.5-rc.2` 的 master `c291e7961a`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
 字符串 settings namespace。完整改写清单见
 [当前 master 提示词融合说明](docs/prompt-fusion.md)。
 
@@ -124,4 +124,4 @@ tools/           原版提示词抓取和集成验证脚本
 docs/            原版与融合版的逐项差异
 ```
 
-Web bundle 为官方 `connection` 条目声明 `webServer` 依赖，并保留 `webRuntime`；私有 RPC 因而可以在 DSH `0.1.3-alpha.2` 上注册，浏览器认证继续由 Connection 处理。
+Web bundle 为官方 `connection` 条目声明 `webServer` 依赖，并保留 `webRuntime`；私有 RPC 因而可以在 DSH `0.1.5-rc.2` 上注册，浏览器认证继续由 Connection 处理。

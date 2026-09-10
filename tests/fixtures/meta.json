@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "c389f96bf3a9b6807cb71ed6bdad5849be0df6d8",
-  "capturedAt": "2026-09-08T11:27:43.522Z",
+  "commit": "c291e7961a515f6d7af9304e7fd1d257929aef26",
+  "capturedAt": "2026-09-10T17:44:52.998Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -39,6 +39,7 @@
         "job_list",
         "job_output",
         "list_agents",
+        "present",
         "pwsh",
         "ralph",
         "read",
@@ -92,6 +93,7 @@
         "job_list",
         "job_output",
         "list_agents",
+        "present",
         "pwsh",
         "ralph",
         "read",
@@ -136,7 +138,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 33809
+      "promptBytes": 34647
     },
     "ptc-plan": {
       "sections": [
@@ -165,7 +167,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36155
+      "promptBytes": 36993
     },
     "cordis": {
       "sections": [
@@ -211,6 +213,7 @@
         "job_list",
         "job_output",
         "list_agents",
+        "present",
         "pwsh",
         "ralph",
         "read",
@@ -272,6 +275,7 @@
         "job_list",
         "job_output",
         "list_agents",
+        "present",
         "pwsh",
         "ralph",
         "read",
@@ -294,8 +298,7 @@
         "deployment:persona-prefix"
       ],
       "tools": [
-        "pwsh",
-        "str_replace_editor"
+        "pwsh"
       ],
       "promptBytes": 46
     },
@@ -335,6 +338,7 @@
         "job_list",
         "job_output",
         "list_agents",
+        "present",
         "pwsh",
         "ralph",
         "read",

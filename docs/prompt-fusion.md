@@ -1,6 +1,6 @@
 # 当前 master 提示词融合说明
 
-本文记录 dsh-unrestricted 在 DSH `0.1.3-alpha.2`（master `c389f96bf3`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。纯提示词验证关闭依赖 HTTP Connection 的文件上传、会话控制与在应用中打开入口。
+本文记录 dsh-unrestricted 在 DSH `0.1.5-rc.2`（master `c291e7961a`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。验证使用独立 loopback 临时端口，保留 Connection、文件上传、会话控制及文件交付组件，让原版文件交付提示词完整参与组装；不调用模型或外部接口。
 
 ## 融合规则
 
