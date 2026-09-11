@@ -26,8 +26,9 @@
  * or future agent — never an in-flight request or a logged session event.
  */
 import z from '@deepseek-ai/schemastery'
+import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import {
-  ANCHORS, PRESETS, PRESET_RULES, fuseSections, fusedMinimalPrompt,
+  ANCHORS, PRESETS, PRESET_RULES, contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
 } from './rules.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
@@ -71,6 +72,8 @@ export function apply(ctx) {
     shadows: new Map(),
     /** Fused minimal prompt, computed only after the minimal anchors verify. */
     fusedMinimal: null,
+    /** presetId -> last successfully fused live assembly (the deploy preview). */
+    fusedText: new Map(),
   }
 
   /** All known issues for one preset (startup check + live observations). */
@@ -182,18 +185,97 @@ export function apply(ctx) {
         issues,
       }
     }
-    return { enabled: state.enabled, modes }
+    return { enabled: state.enabled, contract: contractFingerprint(), modes }
+  }
+
+  /** One line-count/byte summary so the preview does not ship a whole prompt. */
+  function summarize(text) {
+    return {
+      text,
+      bytes: Buffer.byteLength(text, 'utf8'),
+      lines: text.split('\n').length,
+    }
+  }
+
+  /**
+   * Variables to bind in a standing-scope preview. The standing scope carries
+   * no agent, so its `{{model}}` / `{{cwd}}` providers resolve to nothing; when
+   * a live agent exists, borrow its route and working directory so the card
+   * reads a realistic prompt instead of raw slots. Absent any agent the slots
+   * stay literal, which the card renders as-is.
+   * @returns partial variable overrides for the preview assembly.
+   */
+  function previewVariables() {
+    const variables = {}
+    try {
+      const agents = ctx.get('agents')
+      const agent = agents?.list?.()[0]
+      if (agent !== undefined) {
+        variables.provider = agent.options.provider
+        variables.model = agent.options.model
+        variables.cwd = agent.session.header.cwd
+      }
+    } catch {
+      // No agent service or an unreadable session: literal slots are fine.
+    }
+    return variables
+  }
+
+  /**
+   * Build the deploy preview for ONE preset from the same assembly path the
+   * live fusion uses. This is the "look before you switch" surface: exact
+   * fused prompt text, its size, and the contract fingerprint it embeds.
+   * Read-only — it never mutates prompt state.
+   * @param presetId - preset id from the card.
+   * @returns the preview payload, or a message naming why none is available.
+   */
+  async function previewFor(presetId) {
+    const contract = contractFingerprint()
+    if (!PRESETS.includes(presetId)) {
+      return { presetId, contract, available: false, reason: `unknown preset "${presetId}"` }
+    }
+    // Best source first: the exact bytes a live agent just received. Only when
+    // no agent has assembled this preset yet (the toggle is still off) does the
+    // preview fall back to the standing scope, which carries no agent-bound
+    // sections and leaves {{model}} / {{cwd}} as literal slots.
+    const cached = state.fusedText.get(presetId)
+    if (cached !== undefined) {
+      return { presetId, contract, available: true, source: 'live', ...summarize(cached) }
+    }
+    try {
+      const key = await ctx.agentPresets.standingKeyFor(presetId)
+      const assembly = await ctx.systemPrompt.assemble({ scope: key })
+      const fused = presetId === 'minimal'
+        ? { sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt() }] }
+        : fuseSections(assembly.sections, presetId)
+      if (fused.issues !== undefined) {
+        return { presetId, contract, available: false, reason: fused.issues.join('; ') }
+      }
+      const variables = { ...assembly.variables, ...previewVariables() }
+      const text = renderPreview({ ...assembly, sections: fused.sections, variables }, renderPrompt)
+      return { presetId, contract, available: true, source: 'standing', ...summarize(text) }
+    } catch (error) {
+      return { presetId, contract, available: false, reason: `preview probe failed: ${messageOf(error)}` }
+    }
   }
 
   /** RPC endpoint handler for the settings card. */
-  async function handleRpc(endpoint) {
+  async function handleRpc(endpoint, payload) {
     switch (endpoint) {
       case 'status':
         return ok(statusPayload())
+      case 'preview': {
+        // Private channels forward the client payload verbatim; accept the
+        // `{ args }` envelope too so this handler survives a caller that
+        // follows the gateway convention.
+        const presetId = payload?.presetId ?? payload?.args?.presetId
+        return ok(await previewFor(presetId))
+      }
       case 'recheck': {
         state.checking.clear()
         state.startup.clear()
         state.runtime.clear()
+        state.fusedText.clear()
         await ensureChecks()
         if (state.enabled) sweepAgents()
         return ok(statusPayload())
@@ -230,6 +312,13 @@ export function apply(ctx) {
     if (fused.issues !== undefined) {
       state.runtime.set(presetId, fused.issues)
       return original
+    }
+    // Keep the deployed fusion available for the card's preview. Rendering is
+    // display-only and never feeds back into the assembly returned to the loop.
+    try {
+      state.fusedText.set(presetId, renderPreview({ ...original, sections: fused.sections }, renderPrompt))
+    } catch {
+      state.fusedText.delete(presetId) // an unresolvable variable only costs the preview
     }
     return { ...original, sections: fused.sections }
   })

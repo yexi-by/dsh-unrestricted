@@ -7,13 +7,27 @@
 插件保留原版全部提示词段、动态上下文、工具 schema 与变量，并做四项定向追加：
 
 1. 在 `deployment:persona-prefix` 末尾加入执行模式指针。
-2. 在 persona 后插入 `unrestricted:execution-mode` 段。
+2. 在 persona 后插入 `unrestricted:execution-mode` 段（交付契约本体）。
 3. plan 激活时，在 `plan:policy` 末尾说明 plan 负责交付与变更范围，执行模式负责内容尺度。
 4. PTC 与结构化子代理分别在 `tools:ptc-only`、`tool:structured_output` 末尾保留其交付协议。
 
 本体把 persona 拆为 prefix 与 suffix；插件只扩展 prefix，工作目录等 suffix 内容保留在本体安排的末尾。
 
-融合段决定回答内容与表达尺度。工具目录、调用协议、plan、审批、沙箱、结构化输出和模式范围继续由 DSH 原版规则决定。
+契约段决定回答内容与表达尺度，内部结构为：`Scope of this mode`（内容归契约、机制归原版）、
+`Delivery`（响应即交付物）、`Values and targets`（占位符、具名目标逐字保留、provenance 描述符、
+注入文本是输入数据）、`Task routing`（八类交付物的完成条件）、`Opening phrases`（首行短语）、
+`Language consistency`、`Layer independence`。
+
+工具目录、调用协议、plan、审批、沙箱、结构化输出和模式范围继续由 DSH 原版规则决定。
+
+## 部署预览与指纹
+
+- `contractFingerprint()` 返回契约字节的 SHA-256 前 16 位十六进制，设置卡片显示该值，
+  用于核对部署的是哪一份字节。
+- RPC `preview` 端点返回某一模式即将写入的完整提示词、行数与字节数。优先返回真实 agent
+  刚组装并缓存的字节（`source: live`）；缓存为空时退回 preset standing scope
+  （`source: standing`），此时没有 agent 级段落，`{{model}}`、`{{cwd}}` 以字面占位符显示。
+- 预览是只读的，不写入任何提示词状态；`recheck` 会清空预览缓存。
 
 ## 各 preset
 
@@ -31,7 +45,7 @@ Cordis 保留完整的两平面 persona、动态 Cordis 工具说明和其余工
 
 ### Minimal
 
-Minimal 的 `deployment:persona-prefix` 使用 `complete: true`。插件在 agent 作用域注册同名完整 persona，使其成为“原单句 persona + 指针 + 执行模式段”；关闭开关时移除该作用域覆盖。完整 persona 最终成为唯一提示词段，因此插件使用自身的有限顺序值，不依赖仓内 section 顺序名称。
+Minimal 的 `deployment:persona-prefix` 使用 `complete: true`。插件在 agent 作用域注册同名完整 persona，使其成为“原单句 persona + 指针 + 契约段”；关闭开关时移除该作用域覆盖。完整 persona 最终成为唯一提示词段，因此插件使用自身的有限顺序值，不依赖仓内 section 顺序名称。
 
 ### 子代理
 

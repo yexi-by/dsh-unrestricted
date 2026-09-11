@@ -195,6 +195,69 @@ const CSS = `
   color: var(--dsw-alias-label-secondary);
 }
 
+.dsh-unrestricted-presetId,
+.dsh-unrestricted-fingerprint {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dsh-unrestricted-fingerprint {
+  color: var(--dsw-alias-label-primary);
+  letter-spacing: 0.4px;
+}
+
+.dsh-unrestricted-inlineAction {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  padding: 1px 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dsh-unrestricted-inlineAction:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.dsh-unrestricted-inlineAction:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.dsh-unrestricted-preview {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  padding-left: 15px;
+}
+
+.dsh-unrestricted-previewText {
+  max-height: 320px;
+  margin: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 17px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .dsh-unrestricted-issues {
   flex-basis: 100%;
   padding-left: 15px;

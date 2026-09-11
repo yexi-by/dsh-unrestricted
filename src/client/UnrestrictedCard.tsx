@@ -1,8 +1,10 @@
 /**
- * The unrestricted settings card: one persisted toggle plus the per-preset
- * fusion state reported by the host half. All data arrives through the four
- * props shares; the component holds no state of its own.
+ * The unrestricted settings card: one persisted toggle, the per-preset fusion
+ * state reported by the host half, and the deploy preview for the preset the
+ * user is inspecting. All data arrives through the props shares; the only
+ * component-local state is which preview is open.
  */
+import { useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: the `settings.plugin.item` keyed slot declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
@@ -16,11 +18,15 @@ export type UnrestrictedCardProps =
   & InjectFace<UnrestrictedCardInjected>
 
 /** Mode rows in display order, with their locale label keys. */
-const MODE_ROWS: ReadonlyArray<{ id: string; labelKey: UnrestrictedLocaleKey }> = [
-  { id: 'standard', labelKey: 'modeStandard' },
-  { id: 'ptc', labelKey: 'modePtc' },
-  { id: 'cordis', labelKey: 'modeCordis' },
-  { id: 'minimal', labelKey: 'modeMinimal' },
+const MODE_ROWS: ReadonlyArray<{
+  id: string
+  labelKey: UnrestrictedLocaleKey
+  presetKey: UnrestrictedLocaleKey
+}> = [
+  { id: 'standard', labelKey: 'modeStandard', presetKey: 'presetStandard' },
+  { id: 'ptc', labelKey: 'modePtc', presetKey: 'presetPtc' },
+  { id: 'cordis', labelKey: 'modeCordis', presetKey: 'presetCordis' },
+  { id: 'minimal', labelKey: 'modeMinimal', presetKey: 'presetMinimal' },
 ]
 
 /** Locale key for one mode state. */
@@ -42,6 +48,8 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   const { t } = props
   const view = props.useView(snapshot => snapshot)
   const status = view.status
+  const [openPreview, setOpenPreview] = useState<string | null>(null)
+
   const hasFailedMode = status !== null
     && Object.values(status.modes).some(mode => mode.state === 'failed')
   const summaryKey: UnrestrictedLocaleKey = view.settingsStatus === 'loading'
@@ -54,6 +62,18 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   const summaryState = view.settingsStatus === 'ready'
     ? hasFailedMode ? 'error' : view.enabled ? 'active' : 'off'
     : 'pending'
+
+  /** Toggle one preset's preview, fetching the current bytes on first open. */
+  function togglePreview(presetId: string): void {
+    if (openPreview === presetId) {
+      setOpenPreview(null)
+      return
+    }
+    setOpenPreview(presetId)
+    const entry = view.previews[presetId]
+    if (entry === undefined || entry.status === 'failed') void props.loadPreview(presetId)
+  }
+
   return (
     <details className="dsh-unrestricted-card">
       <summary className="dsh-unrestricted-summary">
@@ -83,18 +103,55 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
         <ul className="dsh-unrestricted-modes">
           {MODE_ROWS.map((row) => {
             const mode = status?.modes[row.id]
+            const entry = view.previews[row.id]
+            const isOpen = openPreview === row.id
             return (
               <li key={row.id} className="dsh-unrestricted-mode">
                 <span className="dsh-unrestricted-dot" data-state={mode?.state ?? 'off'} />
                 <span className="dsh-unrestricted-modeName">{t(row.labelKey)}</span>
                 <span className="dsh-unrestricted-modeState">{t(stateKey(mode))}</span>
+                <code className="dsh-unrestricted-presetId">{t(row.presetKey)}</code>
+                <button
+                  type="button"
+                  className="dsh-unrestricted-inlineAction"
+                  onClick={() => { togglePreview(row.id) }}
+                >
+                  {t(isOpen ? 'hidePreview' : 'showPreview')}
+                </button>
                 {mode !== undefined && mode.issues.length > 0 && (
                   <span className="dsh-unrestricted-issues">{mode.issues.join('; ')}</span>
+                )}
+                {isOpen && (
+                  <div className="dsh-unrestricted-preview">
+                    {entry === undefined || entry.status === 'loading' ? (
+                      <p className="dsh-unrestricted-note">{t('previewLoading')}</p>
+                    ) : entry.status === 'failed' ? (
+                      <p className="dsh-unrestricted-error">
+                        {t('previewUnavailable')}{entry.message}
+                      </p>
+                    ) : entry.preview?.available === false ? (
+                      <p className="dsh-unrestricted-error">
+                        {t('previewUnavailable')}{entry.preview.reason}
+                      </p>
+                    ) : (
+                      <>
+                        <p className="dsh-unrestricted-note">
+                          {t('previewSize')} {entry.preview?.lines} · {entry.preview?.bytes} B
+                        </p>
+                        <pre className="dsh-unrestricted-previewText">{entry.preview?.text}</pre>
+                      </>
+                    )}
+                  </div>
                 )}
               </li>
             )
           })}
         </ul>
+        <h4 className="dsh-unrestricted-statusTitle">{t('preflightTitle')}</h4>
+        <p className="dsh-unrestricted-note">
+          {t('fingerprint')} <code className="dsh-unrestricted-fingerprint">{status?.contract ?? '—'}</code>
+        </p>
+        <p className="dsh-unrestricted-note">{t('fingerprintNote')}</p>
         <p className="dsh-unrestricted-note">{t('subagentNote')}</p>
         <p className="dsh-unrestricted-note">{t('scopeNote')}</p>
         <div className="dsh-unrestricted-actions">

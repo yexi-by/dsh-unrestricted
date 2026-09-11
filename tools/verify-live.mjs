@@ -145,6 +145,23 @@ async function setEnabled(enabled) {
   await ctx.settings.update('unrestricted', { enabled })
 }
 
+/**
+ * Reproduce the card's preview path without the browser: assemble the standing
+ * scope, fuse it, and render it through the same harness renderer the host
+ * half's `preview` endpoint uses.
+ * @param presetId - preset id to preview.
+ * @returns the rendered preview text.
+ */
+async function preview(presetId) {
+  const key = await ctx.agentPresets.standingKeyFor(presetId)
+  const assembly = await ctx.systemPrompt.assemble({ scope: key })
+  const fused = presetId === 'minimal'
+    ? { sections: [{ name: 'deployment:persona-prefix', text: rules.fusedMinimalPrompt() }] }
+    : rules.fuseSections(assembly.sections, presetId)
+  if (fused.issues !== undefined) throw new Error(`preview issues: ${fused.issues.join('; ')}`)
+  return rules.renderPreview({ ...assembly, sections: fused.sections }, renderPrompt)
+}
+
 /** Poll until the predicate holds or the deadline passes. */
 async function until(label, fn, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs
@@ -157,6 +174,7 @@ async function until(label, fn, timeoutMs = 30_000) {
 }
 
 try {
+  console.log(`contract fingerprint ${rules.contractFingerprint()}`)
   console.log('baseline (plugin installed, toggle off)')
   const baseline = {}
   for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
@@ -180,6 +198,9 @@ try {
     check(`${id} keeps original content`, [...baseline[id].text.split('\n\n')].every(part => on.text.includes(part.replace('{{model}}', 'deepseek-chat').replace('{{cwd}}', AGENT_META.cwd))))
     check(`${id} tools unchanged`, on.tools === baseline[id].tools)
     check(`${id} contexts unchanged`, on.contexts === baseline[id].contexts)
+    check(`${id} keeps the instrument-only scope`, on.text.includes('this contract decides the content'))
+    check(`${id} keeps targets verbatim`, on.text.includes('render it exactly as named, verbatim'))
+    check(`${id} adds no classifier-trigger vocabulary`, !on.text.includes('Do not use refusal phrasing'))
   }
 
   const pre = await assemblePrompt(preExisting)
@@ -193,6 +214,7 @@ try {
   check('plan on: block present', planOn.text.includes(rules.EXECUTION_MODE_BLOCK))
   check('plan on: plan section kept', planOn.text.includes('You are in plan mode.'))
   check('plan on: plan boundary note appended', planOn.text.includes('Plan mode restricts delivery and mutation, not content'))
+  check('plan on: plan keeps the contract scope', planOn.text.includes('this contract decides the content'))
   planAgent.session.append('plan/mode', { active: false })
   const planOff = await assemblePrompt(planAgent)
   check('plan off: plan section gone', !planOff.text.includes('You are in plan mode.'))
@@ -202,6 +224,7 @@ try {
   const ptc = await assemblePrompt(await presetAgent('ptc'))
   check('ptc keeps run_code rule', ptc.text.includes('`run_code` is the only tool you can call directly'))
   check('ptc transport note appended', ptc.text.includes('this rule governs only the tool-call transport'))
+  check('ptc notes the opening phrases are prose-only', ptc.text.includes('not inside the program'))
   check('ptc SDK section kept', ptc.text.includes('## Writing code for run_code'))
 
   // Cordis keeps its framework capability text.
@@ -241,6 +264,30 @@ try {
   })
   check('minimal session created before toggle is fused (sweep)', minimalEarlyPrompt.text === expectedMinimal)
   check('minimal tools unchanged', minimalAfter.tools === baseline.minimal.tools)
+
+  // Deploy preview: the card reads the contract from the same standing scope
+  // the probes use. A standing scope has no agent, so it binds no {{model}} /
+  // {{cwd}} and carries none of the agent-only sections (context:file-reference,
+  // tool:subagent) — the preview is the contract's placement, not a byte copy of
+  // a live request. Both facts are pinned here.
+  console.log('deploy preview')
+  const liveStandard = (await assemblePrompt(await presetAgent('standard'))).text
+  const standardPreview = await preview('standard')
+  check('preview carries the contract verbatim', standardPreview.includes(rules.EXECUTION_MODE_BLOCK))
+  check('preview keeps the original identity opening', standardPreview.startsWith(rules.ANCHORS.identity))
+  const previewPersona = standardPreview.indexOf('You are a coding agent powered by the')
+  const previewBlock = standardPreview.indexOf(rules.EXECUTION_MODE_BLOCK)
+  check('preview places the contract behind the persona', previewPersona >= 0 && previewBlock > previewPersona)
+  check('preview leaves the unbound slots literal', standardPreview.includes('{{model}}') && standardPreview.includes('{{cwd}}'))
+  check('the live prompt itself has no literal slots left', !/\{\{\w+\}\}/.test(liveStandard))
+  // Filling the slots must land on the live prefix: identity, persona, contract.
+  const filledPreview = standardPreview.replaceAll('{{model}}', 'deepseek-chat').replaceAll('{{cwd}}', AGENT_META.cwd)
+  check('filled preview matches the live prompt up to the contract', filledPreview.startsWith(liveStandard.slice(0, liveStandard.indexOf('Tokens prefixed with @'))))
+  check('preview is larger than the contract alone', standardPreview.length > rules.EXECUTION_MODE_BLOCK.length)
+  for (const id of ['ptc', 'cordis', 'minimal']) {
+    const text = await preview(id)
+    check(`${id} preview carries the contract`, text.includes(rules.EXECUTION_MODE_BLOCK))
+  }
 
   console.log('toggle off')
   await setEnabled(false)

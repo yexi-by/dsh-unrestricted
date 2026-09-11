@@ -26,7 +26,31 @@ export interface UnrestrictedModeState {
 /** Host status endpoint payload. */
 export interface UnrestrictedStatus {
   enabled: boolean
+  /** Fingerprint of the contract bytes the host half deploys. */
+  contract: string
   modes: Record<string, UnrestrictedModeState>
+}
+
+/** Deploy preview for one preset: what switching on would actually assemble. */
+export interface UnrestrictedPreview {
+  presetId: string
+  contract: string
+  available: boolean
+  /** `live` = bytes a live agent received; `standing` = preset scope, no agent bound. */
+  source?: 'live' | 'standing'
+  /** Fused prompt text; present when available. */
+  text?: string
+  bytes?: number
+  lines?: number
+  /** Why no preview could be built; present when unavailable. */
+  reason?: string
+}
+
+/** One fetched preview, keyed by preset, plus its in-flight/error state. */
+export interface UnrestrictedPreviewEntry {
+  status: 'loading' | 'ready' | 'failed'
+  preview?: UnrestrictedPreview
+  message?: string
 }
 
 /** Full view snapshot the card subscribes to. */
@@ -39,6 +63,8 @@ export interface UnrestrictedViewSnapshot {
   settingsStatus: 'loading' | 'ready' | 'unavailable'
   /** Live host status; null until the first RPC answer. */
   status: UnrestrictedStatus | null
+  /** presetId -> fetched deploy preview. */
+  previews: Record<string, UnrestrictedPreviewEntry>
   /** Last transport/business failure, if any. */
   message?: string
 }
@@ -64,6 +90,8 @@ export interface UnrestrictedCardInjected {
   recheck: () => Promise<void>
   /** Re-read host status. */
   refresh: () => Promise<void>
+  /** Fetch the exact fused prompt this preset would deploy. */
+  loadPreview: (presetId: string) => Promise<void>
 }
 
 const RPC_CHANNEL = '/dsh-unrestricted'
@@ -88,6 +116,7 @@ export function createUnrestrictedController(ctx: Context) {
     writable: false,
     settingsStatus: 'loading',
     status: null,
+    previews: {},
   }
   const listeners = new Set<() => void>()
 
@@ -106,6 +135,7 @@ export function createUnrestrictedController(ctx: Context) {
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
+      previews: snapshot.previews,
       message: snapshot.message,
     }
     for (const listener of listeners) listener()
@@ -138,12 +168,40 @@ export function createUnrestrictedController(ctx: Context) {
   async function recheck(): Promise<void> {
     try {
       const status = await call<UnrestrictedStatus>('recheck', {})
-      snapshot = { ...snapshot, status, message: undefined }
+      // The recheck invalidates every cached preview: the deployed bytes may
+      // have changed under a new master.
+      snapshot = { ...snapshot, status, previews: {}, message: undefined }
       publish()
     } catch (error) {
       snapshot = { ...snapshot, message: messageOf(error) }
       publish()
     }
+  }
+
+  /**
+   * Fetch one preset's deploy preview. The card renders the raw fused prompt,
+   * so the user reads the exact bytes before switching the mode on.
+   * @param presetId - preset id from the card's row.
+   */
+  async function loadPreview(presetId: string): Promise<void> {
+    snapshot = {
+      ...snapshot,
+      previews: { ...snapshot.previews, [presetId]: { status: 'loading' } },
+    }
+    publish()
+    try {
+      const preview = await call<UnrestrictedPreview>('preview', { presetId })
+      snapshot = {
+        ...snapshot,
+        previews: { ...snapshot.previews, [presetId]: { status: 'ready', preview } },
+      }
+    } catch (error) {
+      snapshot = {
+        ...snapshot,
+        previews: { ...snapshot.previews, [presetId]: { status: 'failed', message: messageOf(error) } },
+      }
+    }
+    publish()
   }
 
   ctx.effect(
@@ -162,6 +220,8 @@ export function createUnrestrictedController(ctx: Context) {
   publish()
   void refresh()
   return {
-    face: (): UnrestrictedCardInjected => ({ hooks: { view }, setEnabled, recheck, refresh }),
+    face: (): UnrestrictedCardInjected => ({
+      hooks: { view }, setEnabled, recheck, refresh, loadPreview,
+    }),
   }
 }
