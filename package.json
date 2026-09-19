@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": true,
   "description": "Toggleable unrestricted mode for the current DSH master: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
   "license": "MIT",
@@ -38,7 +38,7 @@
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-settings",
-        "@deepseek-ai/dsh-client-ui-settings-plugins"
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
       ]
     }
   },

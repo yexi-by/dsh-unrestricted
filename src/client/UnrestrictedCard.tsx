@@ -6,14 +6,14 @@
  */
 import { useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: the `settings.plugin.item` keyed slot declaration.
-import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+// Type-only: 本体插件管理页的配置槽位。
+import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { UnrestrictedCardInjected, UnrestrictedModeState } from './controller.ts'
 import type { UnrestrictedLocaleKey } from './locales.ts'
 
 /** Full component props assembled by the Settings slot renderer. */
 export type UnrestrictedCardProps =
-  PropsRuntime<'settings.plugin.item'>
+  PropsRuntime<'plugins.bundle.config'>
   & PropsLocale<'settings.unrestricted'>
   & InjectFace<UnrestrictedCardInjected>
 

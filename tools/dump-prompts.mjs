@@ -64,6 +64,7 @@ const overrides = [
   { id: 'open-in-app', disabled: true },
   { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
+  { id: 'hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [
     { id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' },
@@ -80,16 +81,28 @@ const overrides = [
   },
 ]
 
-await appBoot.healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, home })
 const profileDir = join(home, 'profiles', 'spec')
 await mkdir(profileDir, { recursive: true })
+appBoot.initProfile(profileDir, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+const profile = {
+  name: 'spec', dir: profileDir, layers: [],
+  patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
+}
+const resolution = await appBoot.createProfileResolutionGeneration({ installAnchor: INSTALL_ANCHOR, home, profile })
 const rootConfig = join(profileDir, 'cordis.yml')
 await writeFile(rootConfig, '[]\n')
 const bundlePatches = [
   ...appBoot.loadOverlayPatches('dsh-test', BASE_PATCH),
   ...appBoot.loadOverlayPatches('dsh-test', WEB_PATCH),
 ]
-const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], (bootCtx) => {
+const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], async (bootCtx) => {
+  bootCtx.provide('profileContext', {
+    name: 'spec', dir: profileDir, patchPath: profile.patchPath,
+    installAnchor: INSTALL_ANCHOR, home, cwd: home,
+    startedBundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
+    overlays: overrides, telemetryDisabledEnv: '1',
+  })
+  await bootCtx.plugin(appBoot.PluginPackages, { generation: resolution })
   cmdline.provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 

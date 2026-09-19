@@ -11,7 +11,7 @@ test('declares the current master client renderer and settings dependencies', ()
     '@deepseek-ai/dsh-api-remotes',
     '@deepseek-ai/dsh-client-ui-renderer',
     '@deepseek-ai/dsh-client-ui-settings',
-    '@deepseek-ai/dsh-client-ui-settings-plugins',
+    '@deepseek-ai/dsh-client-ui-plugin-manager',
   ])
   assert.equal(manifest.dsh.client.platform, 'web')
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')

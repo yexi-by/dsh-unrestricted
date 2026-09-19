@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "c291e7961a515f6d7af9304e7fd1d257929aef26",
-  "capturedAt": "2026-09-10T17:44:52.998Z",
+  "commit": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+  "capturedAt": "2026-09-19T08:32:32.758Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -20,9 +20,9 @@
         "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
       ],
@@ -41,7 +41,6 @@
         "list_agents",
         "present",
         "pwsh",
-        "ralph",
         "read",
         "read_image",
         "send_message",
@@ -55,7 +54,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5701
+      "promptBytes": 5570
     },
     "standard-plan": {
       "sections": [
@@ -74,9 +73,9 @@
         "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
       ],
@@ -95,7 +94,6 @@
         "list_agents",
         "present",
         "pwsh",
-        "ralph",
         "read",
         "read_image",
         "send_message",
@@ -109,7 +107,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 8047
+      "promptBytes": 7916
     },
     "ptc": {
       "sections": [
@@ -128,9 +126,9 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "tools:sdk",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
@@ -138,7 +136,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 34647
+      "promptBytes": 33678
     },
     "ptc-plan": {
       "sections": [
@@ -157,9 +155,9 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "tools:sdk",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
@@ -167,7 +165,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36993
+      "promptBytes": 36024
     },
     "cordis": {
       "sections": [
@@ -187,21 +185,16 @@
         "tool:goal",
         "tool:cordis",
         "tool:workflow",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
-        "cordis_define",
         "cordis_inspect_list",
         "cordis_inspect_query",
-        "cordis_inspect_self",
-        "cordis_run",
-        "cordis_stop",
-        "cordis_undefine",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -213,9 +206,9 @@
         "job_list",
         "job_output",
         "list_agents",
+        "plugin_manager",
         "present",
         "pwsh",
-        "ralph",
         "read",
         "read_image",
         "send_message",
@@ -229,7 +222,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 17272
+      "promptBytes": 8955
     },
     "cordis-plan": {
       "sections": [
@@ -249,21 +242,16 @@
         "tool:goal",
         "tool:cordis",
         "tool:workflow",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
       ],
       "tools": [
         "ask_user_question",
-        "cordis_define",
         "cordis_inspect_list",
         "cordis_inspect_query",
-        "cordis_inspect_self",
-        "cordis_run",
-        "cordis_stop",
-        "cordis_undefine",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -275,9 +263,9 @@
         "job_list",
         "job_output",
         "list_agents",
+        "plugin_manager",
         "present",
         "pwsh",
-        "ralph",
         "read",
         "read_image",
         "send_message",
@@ -291,7 +279,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 19618
+      "promptBytes": 11301
     },
     "minimal": {
       "sections": [
@@ -319,9 +307,9 @@
         "tool:web_fetch",
         "tool:goal",
         "tool:workflow",
-        "tool:ralph",
         "tool:subagent",
         "tool:subagent_fork",
+        "mcp-resource-servers",
         "ui:deliverable-file-references",
         "deployment:persona-suffix"
       ],
@@ -340,7 +328,6 @@
         "list_agents",
         "present",
         "pwsh",
-        "ralph",
         "read",
         "read_image",
         "send_message",
@@ -354,7 +341,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5701
+      "promptBytes": 5570
     }
   }
 }

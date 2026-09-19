@@ -51,7 +51,7 @@ const settingsFile = join(home, 'settings.yaml')
 await writeFile(settingsFile, '{}\n')
 
 // Install the plugin the way `dsh plugin add file:` does: a real copy inside
-// the profile tree, so its bare imports resolve through the healed fallback.
+// the profile tree, then register the official runtime package resolution.
 const profileDir = join(home, 'profiles', 'spec')
 const pluginInstall = join(profileDir, 'node_modules', 'dsh-unrestricted')
 await mkdir(dirname(pluginInstall), { recursive: true })
@@ -59,7 +59,7 @@ await cp(pluginDir, pluginInstall, {
   recursive: true,
   filter: (source) => !/node_modules|\.git|lib[\\/]client/.test(source),
 })
-await writeFile(join(profileDir, 'package.json'), JSON.stringify({ private: true }) + '\n')
+appBoot.initProfile(profileDir, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-unrestricted'])
 const rootConfig = join(profileDir, 'cordis.yml')
 await writeFile(rootConfig, '[]\n')
 
@@ -76,6 +76,7 @@ const overrides = [
   { id: 'open-in-app', disabled: true },
   { id: 'session-log-download', disabled: true },
   { id: 'client-hmr', disabled: true },
+  { id: 'hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [
     { id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' },
@@ -92,16 +93,25 @@ const overrides = [
   },
 ]
 
-await appBoot.healProfilesModuleFallback({
-  installAnchor: join(repo, 'apps/cli/package.json'),
-  home,
-})
+const installAnchor = join(repo, 'apps/cli/package.json')
+const profile = {
+  name: 'spec', dir: profileDir, layers: [],
+  patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
+}
+const resolution = await appBoot.createProfileResolutionGeneration({ installAnchor, home, profile })
 const bundlePatches = [
   ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/base/cordis.patch.yml')),
   ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/web-app/cordis.patch.yml')),
   ...appBoot.loadOverlayPatches('dsh-unrestricted', join(pluginDir, 'cordis.patch.yml')),
 ]
-const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], (bootCtx) => {
+const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], async (bootCtx) => {
+  bootCtx.provide('profileContext', {
+    name: 'spec', dir: profileDir, patchPath: profile.patchPath,
+    installAnchor, home, cwd: home,
+    startedBundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-unrestricted'],
+    overlays: overrides, telemetryDisabledEnv: '1',
+  })
+  await bootCtx.plugin(appBoot.PluginPackages, { generation: resolution })
   cmdline.provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 
@@ -230,7 +240,7 @@ try {
   // Cordis keeps its framework capability text.
   const cordis = await assemblePrompt(await presetAgent('cordis'))
   check('cordis keeps composition rules', cordis.text.includes('NEVER edit or delete the shipped preset install'))
-  check('cordis keeps tool:cordis section', cordis.text.includes('# Dynamic Cordis Plugins'))
+  check('cordis keeps tool:cordis section', cordis.sections.includes('tool:cordis') && cordis.text.includes('plugin_manager'))
 
   // A delegated child fuses like its parent.
   const parent = await presetAgent('standard')

@@ -1,6 +1,6 @@
 # 当前 master 提示词融合说明
 
-本文记录 dsh-unrestricted 在 DSH `0.1.5-rc.2`（master `c291e7961a`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。验证使用独立 loopback 临时端口，保留 Connection、文件上传、会话控制及文件交付组件，让原版文件交付提示词完整参与组装；不调用模型或外部接口。
+本文记录 dsh-unrestricted 在 DSH `0.1.6-alpha.2`（master `ddefc45fbc`）上的提示词融合行为。`tools/dump-prompts.mjs` 在临时 settings、storage 和 session 根目录中从 Web composition 组装原版提示词，并保存到 `tests/fixtures/`。验证提供新版 profileContext 与 PluginPackages，使用独立 loopback 临时端口，保留 Connection、文件上传、会话控制及文件交付组件，让原版文件交付提示词完整参与组装；不调用模型或外部接口。
 
 ## 融合规则
 
@@ -41,7 +41,7 @@ PTC 使用当前 `ptc` preset，并在 Standard 的基础上带有 `tools:ptc-on
 
 ### Cordis
 
-Cordis 保留完整的两平面 persona、动态 Cordis 工具说明和其余工具指导。插件在 persona 后加入执行模式段；plan 激活时追加同一说明。
+Cordis 保留完整的两平面 persona、新版 `plugin_manager` 持久安装流程、Creator UI 插件工作流与只读 Cordis 查询工具说明。插件在 persona 后加入执行模式段；plan 激活时追加同一说明。
 
 ### Minimal
 

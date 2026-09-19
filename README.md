@@ -9,11 +9,11 @@ DSH 原版提示词。开启前可以在设置卡片里预览即将写入的完�
 下面的命令把当前稳定版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.7
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.8
 ```
 
 安装后重启 `dsh web`，然后进入
-`设置 → 插件 → 插件配置 → 破限模式` 打开开关。开关状态保存在
+侧栏 `插件 → unrestricted` 打开开关。开关状态保存在
 `~/.dsh/settings.yaml` 的 `unrestricted.enabled` 中，重启后仍然有效。
 
 如需安装仓库中的最新代码，可以省略版本号：
@@ -61,8 +61,9 @@ DSH 的原版系统提示词规定 agent 身份、计划模式和工具调用方
 - 预览：优先返回真实 agent 刚组装的字节；还没有 agent 组装过该模式时退回 preset
   standing scope，此时 `{{model}}`、`{{cwd}}` 显示为字面占位符。
 
-插件直接面向 DSH `0.1.5-rc.2` 的 master `c291e7961a`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
-字符串 settings namespace。完整改写清单见
+插件直接面向 DSH `0.1.6-alpha.2` 的 master `ddefc45fbc`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
+字符串 settings namespace。设置页已接入官方 `plugins.bundle.config`，Cordis persona 锚点与 fixtures
+同步新版的 `plugin_manager` 和 Creator 工作流，既有契约正文保持原样。完整改写清单见
 [当前 master 提示词融合说明](docs/prompt-fusion.md)，本次重构吸收上游哪些实测结论见
 [上游吸收说明](docs/prompt-refactor-v0.1.7.md)。
 
