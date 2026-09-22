@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "Toggleable unrestricted mode for the current DSH master: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
   "license": "MIT",
@@ -15,7 +15,8 @@
   "exports": {
     ".": "./src/node.js",
     "./client": "./lib/client.js",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "src",
@@ -24,7 +25,8 @@
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "locale"
   ],
   "dsh": {
     "bundle": {

@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "ddefc45fbc7f8e46dd73185e68295696d1297887",
-  "capturedAt": "2026-09-19T08:32:32.758Z",
+  "commit": "c36a83ff6bb95e3f82cf79f9be7c724270a8aa61",
+  "capturedAt": "2026-09-22T10:48:36.614Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -54,7 +54,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5570
+      "promptBytes": 6472
     },
     "standard-plan": {
       "sections": [
@@ -107,7 +107,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 7916
+      "promptBytes": 8818
     },
     "ptc": {
       "sections": [
@@ -136,7 +136,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 33678
+      "promptBytes": 35031
     },
     "ptc-plan": {
       "sections": [
@@ -165,7 +165,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 36024
+      "promptBytes": 37377
     },
     "cordis": {
       "sections": [
@@ -183,7 +183,6 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:cordis",
         "tool:workflow",
         "tool:subagent",
         "tool:subagent_fork",
@@ -222,7 +221,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 8955
+      "promptBytes": 6472
     },
     "cordis-plan": {
       "sections": [
@@ -240,7 +239,6 @@
         "tool:web_search",
         "tool:web_fetch",
         "tool:goal",
-        "tool:cordis",
         "tool:workflow",
         "tool:subagent",
         "tool:subagent_fork",
@@ -279,7 +277,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 11301
+      "promptBytes": 8818
     },
     "minimal": {
       "sections": [
@@ -341,7 +339,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 5570
+      "promptBytes": 6472
     }
   }
 }

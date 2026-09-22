@@ -22,13 +22,14 @@
  *   settings card.
  *
  * The toggle lives in the `unrestricted` settings namespace (persisted to
- * $DSH_HOME/settings.yaml). Switching affects the NEXT assembly of any live
+ * $DSH_HOME/profiles/web/cordis.patch.yml). Switching affects the NEXT assembly of any live
  * or future agent — never an in-flight request or a logged session event.
  */
 import z from '@deepseek-ai/schemastery'
 import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import { createScope } from '@deepseek-ai/dsh-scope'
 import {
-  ANCHORS, PRESETS, PRESET_RULES, contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
+  PRESETS, PRESET_RULES, contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
 } from './rules.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
@@ -39,9 +40,9 @@ export const inject = ['settings', 'systemPrompt', 'agentPresets']
 
 const RPC_CHANNEL = '/dsh-unrestricted'
 
-const Section = z.object({
+export const Config = z.object({
   enabled: z.boolean().default(false),
-})
+}).default({ enabled: false }).volatile()
 
 /** Human-readable error text for status and RPC error branches. */
 function messageOf(error) {
@@ -57,11 +58,11 @@ function ok(value) {
  * @param ctx - plugin context carrying settings, systemPrompt, agentPresets,
  *   connection, and the cordis Loader.
  */
-export function apply(ctx) {
-  const scope = ctx.settings.register('unrestricted', Section)
+export function apply(ctx, config) {
+  ctx.effect(() => ctx.settings.configure({ auto: false }, ctx.fiber))
 
   const state = {
-    enabled: scope.get().enabled,
+    enabled: config.get().enabled,
     /** presetId -> issue strings; a preset with an empty list is verified. */
     startup: new Map(),
     /** presetId -> in-flight startup check. */
@@ -81,6 +82,18 @@ export function apply(ctx) {
     return [...state.startup.get(presetId) ?? [], ...state.runtime.get(presetId) ?? []]
   }
 
+  /** 用公开预设挂载接口读取当前配置；临时作用域在组装后释放。 */
+  async function presetAssembly(presetId) {
+    const key = {}
+    const scope = createScope(ctx, key)
+    try {
+      await ctx.agentPresets.mount(scope.ctx, presetId)
+      return await ctx.systemPrompt.assemble({ scope: key })
+    } finally {
+      await scope.dispose()
+    }
+  }
+
   /**
    * Run the standing-scope anchor check for ONE preset (lazy per-preset, so a
    * minimal toggle never waits on the other three mounts). Idempotent per
@@ -92,14 +105,9 @@ export function apply(ctx) {
     pending = (async () => {
       const issues = []
       try {
-        const key = await ctx.agentPresets.standingKeyFor(presetId)
-        const assembly = await ctx.systemPrompt.assemble({ scope: key })
+        const assembly = await presetAssembly(presetId)
         const fused = fuseSections(assembly.sections, presetId)
         if (fused.issues !== undefined) issues.push(...fused.issues)
-        if (PRESET_RULES[presetId].plan) {
-          const source = await ctx.agentPresets.read(presetId)
-          if (!source.includes(ANCHORS.planPrefix)) issues.push('plan-mode section changed')
-        }
       } catch (error) {
         issues.push(`preset probe failed: ${messageOf(error)}`)
       }
@@ -243,8 +251,7 @@ export function apply(ctx) {
       return { presetId, contract, available: true, source: 'live', ...summarize(cached) }
     }
     try {
-      const key = await ctx.agentPresets.standingKeyFor(presetId)
-      const assembly = await ctx.systemPrompt.assemble({ scope: key })
+      const assembly = await presetAssembly(presetId)
       const fused = presetId === 'minimal'
         ? { sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt() }] }
         : fuseSections(assembly.sections, presetId)
@@ -334,8 +341,8 @@ export function apply(ctx) {
   })
 
   ctx.effect(() => {
-    const unwatch = scope.watch((next) => {
-      const enabled = next.enabled
+    const unwatch = ctx.on('loader/volatile-update', () => {
+      const enabled = config.get().enabled
       if (enabled === state.enabled) return
       state.enabled = enabled
       if (enabled) onEnable()

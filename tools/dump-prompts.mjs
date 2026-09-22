@@ -44,15 +44,11 @@ const { renderPrompt } = await importPackage('packages/core/system-prompt')
 const { applyChildComposition, childSessionMeta } = await importPackage('packages/subagent/subagent')
 
 const BASE_PATCH = join(repo, 'packages/bundle/base/cordis.patch.yml')
-const WEB_PATCH = join(repo, 'packages/bundle/web-app/cordis.patch.yml')
 const INSTALL_ANCHOR = join(repo, 'apps/cli/package.json')
 
 const home = await mkdtemp(join(tmpdir(), 'dsh-prompt-dump-'))
-const settingsFile = join(home, 'settings.yaml')
-await writeFile(settingsFile, '{}\n')
 
 const overrides = [
-  { id: 'settings', config: { path: settingsFile, watch: false } },
   { id: 'storage-json', config: { root: join(home, 'storages') } },
   { id: 'session-persistence-jsonl', config: { root: join(home, 'sessions') } },
   { id: 'webserver', inject: [], config: { host: '127.0.0.1', port: 0 } },
@@ -71,12 +67,9 @@ const overrides = [
     { id: 'ui-directory-picker-browse', name: '@deepseek-ai/dsh-client-ui-directory-picker-browse' },
   ] },
   {
-    id: 'agent-presets',
+    id: 'agent-preset-registry',
     config: {
       default: 'standard',
-      roots: [],
-      includeShippedRoot: true,
-      includeUserRoot: false,
     },
   },
 ]
@@ -88,12 +81,16 @@ const profile = {
   name: 'spec', dir: profileDir, layers: [],
   patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
 }
-const resolution = await appBoot.createProfileResolutionGeneration({ installAnchor: INSTALL_ANCHOR, home, profile })
+const resolution = await appBoot.createRuntimeResolution({ installAnchor: INSTALL_ANCHOR, home, profile })
 const rootConfig = join(profileDir, 'cordis.yml')
 await writeFile(rootConfig, '[]\n')
+const webDir = join(repo, 'packages/bundle/web-app')
+const webManifest = JSON.parse(await readFile(join(webDir, 'package.json'), 'utf8'))
+const webPatches = appBoot.bundlePatchPaths(webDir, webManifest.dsh.bundle)
+  .flatMap(path => appBoot.loadOverlayPatches('dsh-test', path))
 const bundlePatches = [
   ...appBoot.loadOverlayPatches('dsh-test', BASE_PATCH),
-  ...appBoot.loadOverlayPatches('dsh-test', WEB_PATCH),
+  ...webPatches,
 ]
 const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], async (bootCtx) => {
   bootCtx.provide('profileContext', {
@@ -102,7 +99,7 @@ const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...ove
     startedBundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
     overlays: overrides, telemetryDisabledEnv: '1',
   })
-  await bootCtx.plugin(appBoot.PluginPackages, { generation: resolution })
+  await bootCtx.plugin(appBoot.PluginPackages, { resolution })
   cmdline.provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 

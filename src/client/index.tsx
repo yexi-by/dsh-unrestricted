@@ -19,7 +19,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /** Services required by the registration and the controller. */
-export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
+export const inject = ['slots', 'locale', 'connection', 'remote', 'configForms']
 
 /** 注册本插件的配置页面。 */
 export function apply(ctx: Context): void {

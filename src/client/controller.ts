@@ -9,7 +9,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 // Type-only: the ctx.remote Context merge and the forwarded-event key face.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
-// Type-only: the ctx.settingsScope Context merge.
+// Type-only: the ctx.configForms Context merge.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 
 /** The toggle section stored in the `unrestricted` settings namespace. */
@@ -104,12 +104,12 @@ function messageOf(error: unknown): string {
 
 /**
  * Create the card controller bound to the calling plugin's context.
- * @param ctx - the browser plugin context (connection + remote + settingsScope injected).
+ * @param ctx - the browser plugin context (connection + remote + configForms injected).
  * @returns the controller whose face() feeds the slot inject share.
  */
 export function createUnrestrictedController(ctx: Context) {
   const connection = ctx.get('connection') as ConnectionHandle
-  const settings = ctx.settingsScope.bind<UnrestrictedSettings>({ namespace: SETTINGS_NS })
+  const settings = ctx.configForms.get<UnrestrictedSettings>(SETTINGS_NS)
 
   let snapshot: UnrestrictedViewSnapshot = {
     enabled: false,
@@ -208,7 +208,7 @@ export function createUnrestrictedController(ctx: Context) {
     () => settings.subscribe(publish),
     'dsh-unrestricted: settings mirror',
   )
-  // External settings.yaml edits commit through the settings service, which
+  // External profile configuration edits commit through the settings service, which
   // forwards one document event per commit regardless of namespace.
   ctx.effect(
     () => ctx.remote.$on('settings/document-updated', (namespace?: string) => {

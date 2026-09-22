@@ -47,8 +47,6 @@ const { applyChildComposition, childSessionMeta } = await importPackage('package
 const rules = await import(pathToFileURL(join(pluginDir, 'src/rules.js')).href)
 
 const home = await mkdtemp(join(tmpdir(), 'dsh-unrestricted-verify-'))
-const settingsFile = join(home, 'settings.yaml')
-await writeFile(settingsFile, '{}\n')
 
 // Install the plugin the way `dsh plugin add file:` does: a real copy inside
 // the profile tree, then register the official runtime package resolution.
@@ -64,7 +62,6 @@ const rootConfig = join(profileDir, 'cordis.yml')
 await writeFile(rootConfig, '[]\n')
 
 const overrides = [
-  { id: 'settings', config: { path: settingsFile, watch: false } },
   { id: 'storage-json', config: { root: join(home, 'storages') } },
   { id: 'session-persistence-jsonl', config: { root: join(home, 'sessions') } },
   { id: 'webserver', inject: [], config: { host: '127.0.0.1', port: 0 } },
@@ -83,12 +80,9 @@ const overrides = [
     { id: 'ui-directory-picker-browse', name: '@deepseek-ai/dsh-client-ui-directory-picker-browse' },
   ] },
   {
-    id: 'agent-presets',
+    id: 'agent-preset-registry',
     config: {
       default: 'standard',
-      roots: [],
-      includeShippedRoot: true,
-      includeUserRoot: false,
     },
   },
 ]
@@ -98,10 +92,14 @@ const profile = {
   name: 'spec', dir: profileDir, layers: [],
   patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
 }
-const resolution = await appBoot.createProfileResolutionGeneration({ installAnchor, home, profile })
+const resolution = await appBoot.createRuntimeResolution({ installAnchor, home, profile })
+const webDir = join(repo, 'packages/bundle/web-app')
+const webManifest = JSON.parse(await readFile(join(webDir, 'package.json'), 'utf8'))
+const webPatches = appBoot.bundlePatchPaths(webDir, webManifest.dsh.bundle)
+  .flatMap(path => appBoot.loadOverlayPatches('dsh-test', path))
 const bundlePatches = [
   ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/base/cordis.patch.yml')),
-  ...appBoot.loadOverlayPatches('dsh-test', join(repo, 'packages/bundle/web-app/cordis.patch.yml')),
+  ...webPatches,
   ...appBoot.loadOverlayPatches('dsh-unrestricted', join(pluginDir, 'cordis.patch.yml')),
 ]
 const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], async (bootCtx) => {
@@ -111,7 +109,7 @@ const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...ove
     startedBundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-unrestricted'],
     overlays: overrides, telemetryDisabledEnv: '1',
   })
-  await bootCtx.plugin(appBoot.PluginPackages, { generation: resolution })
+  await bootCtx.plugin(appBoot.PluginPackages, { resolution })
   cmdline.provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 
@@ -163,8 +161,16 @@ async function setEnabled(enabled) {
  * @returns the rendered preview text.
  */
 async function preview(presetId) {
-  const key = await ctx.agentPresets.standingKeyFor(presetId)
-  const assembly = await ctx.systemPrompt.assemble({ scope: key })
+  const { createScope } = await importPackage('packages/core/scope')
+  const key = {}
+  const scope = createScope(ctx, key)
+  let assembly
+  try {
+    await ctx.agentPresets.mount(scope.ctx, presetId)
+    assembly = await ctx.systemPrompt.assemble({ scope: key })
+  } finally {
+    await scope.dispose()
+  }
   const fused = presetId === 'minimal'
     ? { sections: [{ name: 'deployment:persona-prefix', text: rules.fusedMinimalPrompt() }] }
     : rules.fuseSections(assembly.sections, presetId)
@@ -236,11 +242,6 @@ try {
   check('ptc transport note appended', ptc.text.includes('this rule governs only the tool-call transport'))
   check('ptc notes the opening phrases are prose-only', ptc.text.includes('not inside the program'))
   check('ptc SDK section kept', ptc.text.includes('## Writing code for run_code'))
-
-  // Cordis keeps its framework capability text.
-  const cordis = await assemblePrompt(await presetAgent('cordis'))
-  check('cordis keeps composition rules', cordis.text.includes('NEVER edit or delete the shipped preset install'))
-  check('cordis keeps tool:cordis section', cordis.sections.includes('tool:cordis') && cordis.text.includes('plugin_manager'))
 
   // A delegated child fuses like its parent.
   const parent = await presetAgent('standard')

@@ -75,7 +75,7 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   }
 
   return (
-    <details className="dsh-unrestricted-card">
+    <details open className="dsh-unrestricted-card">
       <summary className="dsh-unrestricted-summary">
         <span className="dsh-unrestricted-summaryText">
           <span className="dsh-unrestricted-title" role="heading" aria-level={3}>{t('title')}</span>

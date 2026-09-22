@@ -1,5 +1,7 @@
 # dsh-unrestricted
 
+当前版本 0.1.9 适配 DSH 0.1.7-alpha.1（`c36a83ff6b`）。在侧栏「插件 → 破限模式」打开配置。配置通过本体 ConfigEditor 保存到当前 profile 的 `cordis.patch.yml`，由 volatile Config 热更新；旧 `settings.yaml` 由本体首次启动时导入。
+
 为 DeepSeek Harness（DSH）Web 提供可随时开关的破限提示词。它把一份**交付契约**
 融合进 Standard、PTC、Cordis、Minimal 及其子代理的当前原版系统提示词；关闭后恢复
 DSH 原版提示词。开启前可以在设置卡片里预览即将写入的完整提示词。
@@ -9,12 +11,12 @@ DSH 原版提示词。开启前可以在设置卡片里预览即将写入的完�
 下面的命令把当前稳定版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.8
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.1.9
 ```
 
 安装后重启 `dsh web`，然后进入
-侧栏 `插件 → unrestricted` 打开开关。开关状态保存在
-`~/.dsh/settings.yaml` 的 `unrestricted.enabled` 中，重启后仍然有效。
+侧栏 `插件 → 破限模式` 打开开关。开关状态保存在
+`~/.dsh/profiles/web/cordis.patch.yml` 的 `id: unrestricted` 条目的 `config.enabled` 中，重启后仍然有效。
 
 如需安装仓库中的最新代码，可以省略版本号：
 
@@ -61,7 +63,7 @@ DSH 的原版系统提示词规定 agent 身份、计划模式和工具调用方
 - 预览：优先返回真实 agent 刚组装的字节；还没有 agent 组装过该模式时退回 preset
   standing scope，此时 `{{model}}`、`{{cwd}}` 显示为字面占位符。
 
-插件直接面向 DSH `0.1.6-alpha.2` 的 master `ddefc45fbc`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
+插件直接面向 DSH `0.1.7-alpha.1` 的 master `c36a83ff6b`，使用当前的 `ptc` preset、`tools:ptc-only` 段和
 字符串 settings namespace。设置页已接入官方 `plugins.bundle.config`，Cordis persona 锚点与 fixtures
 同步新版的 `plugin_manager` 和 Creator 工作流，既有契约正文保持原样。完整改写清单见
 [当前 master 提示词融合说明](docs/prompt-fusion.md)，本次重构吸收上游哪些实测结论见
@@ -76,7 +78,7 @@ DSH 的原版系统提示词规定 agent 身份、计划模式和工具调用方
 dsh plugin --profile web remove dsh-unrestricted
 ```
 
-卸载插件不会删除 `~/.dsh/settings.yaml` 中已经保存的开关值。
+卸载插件不会删除 `~/.dsh/profiles/web/cordis.patch.yml` 中已经保存的开关值。
 
 ## 来源、版权与许可证
 
@@ -136,4 +138,4 @@ tools/           原版提示词抓取和集成验证脚本
 docs/            原版与融合版的逐项差异、上游吸收说明
 ```
 
-Web bundle 为官方 `connection` 条目声明 `webServer` 依赖，并保留 `webRuntime`；私有 RPC 因而可以在 DSH `0.1.5-rc.2` 上注册，浏览器认证继续由 Connection 处理。
+Web bundle 为官方 `connection` 条目声明 `webServer` 依赖，并保留 `webRuntime`；私有 RPC 因而可以在 DSH `0.1.7-alpha.1` 上注册，浏览器认证继续由 Connection 处理。
