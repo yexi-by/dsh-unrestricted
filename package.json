@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Toggleable unrestricted mode for DeepSeek Harness: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
   "license": "MIT",

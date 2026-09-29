@@ -11,9 +11,10 @@
  *   prompt; tools/contexts stay identical; plan mode flips the plan section only
  * - minimal works for sessions created before AND after the toggle
  * - toggling back off restores the original prompt everywhere
+ * - enabling in the initial profile waits for preset registration before fusion
  *
  * Usage:
- *   node tools/verify-live.mjs --repo <path/to/deepseek-harness>
+ *   node tools/verify-live.mjs --repo <path/to/deepseek-harness> [--boot-enabled]
  *
  * Read-only against the repo. Requires the repo's `lib/` build outputs.
  */
@@ -30,6 +31,7 @@ function arg(name) {
 
 const repo = resolve(arg('repo'))
 const pluginDir = resolve(fileURLToPath(new URL('..', import.meta.url)))
+const bootEnabled = process.argv.includes('--boot-enabled')
 
 async function importPackage(relativeDir) {
   const manifest = JSON.parse(await readFile(join(repo, relativeDir, 'package.json'), 'utf8'))
@@ -86,6 +88,7 @@ const overrides = [
     },
   },
 ]
+if (bootEnabled) overrides.push({ id: 'unrestricted', config: { enabled: true } })
 
 const installAnchor = join(repo, 'apps/cli/package.json')
 const profile = {
@@ -188,6 +191,28 @@ async function until(label, fn, timeoutMs = 30_000) {
     if (Date.now() > deadline) throw new Error(`timeout waiting for ${label}`)
     await new Promise(resolve => setTimeout(resolve, 200))
   }
+}
+
+if (bootEnabled) {
+  try {
+    for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
+      try {
+        await until(`${id} fusion on startup`, async () => {
+          const prompt = await assemblePrompt(await presetAgent(id))
+          return prompt.text.includes(rules.EXECUTION_MODE_BLOCK)
+        }, 3_000)
+        check(`${id} fused when enabled at startup`, true)
+      } catch (error) {
+        check(`${id} fused when enabled at startup`, false, error.message)
+      }
+    }
+  } finally {
+    for (const handle of agents.values()) await handle.dispose()
+    await ctx.fiber.dispose()
+  }
+  if (failures > 0) process.exit(1)
+  console.log('startup-enabled checks passed')
+  process.exit(0)
 }
 
 try {

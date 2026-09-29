@@ -1,6 +1,6 @@
 # dsh-unrestricted
 
-当前版本 0.2.0 适配 DSH 0.2.0-rc.2（`639ed01539`）。在侧栏「插件 → 破限模式」打开配置。配置通过本体 ConfigEditor 保存到当前 profile 的 `cordis.patch.yml`，由 volatile Config 热更新。
+当前版本 0.2.1 适配 DSH 0.2.0-rc.2（`639ed01539`）。在侧栏「插件 → 破限模式」打开配置。配置通过本体 ConfigEditor 保存到当前 profile 的 `cordis.patch.yml`，由 volatile Config 热更新。
 
 为 DeepSeek Harness（DSH）Web 提供可随时开关的破限提示词。它把一份**交付契约**融合进 Standard、PTC、Cordis、Minimal 及其子代理的最新原版系统提示词；关闭后完全恢复 DSH 官方提示词。开启前可以在设置卡片中预览即将写入的完整提示词。
 
@@ -9,7 +9,7 @@
 下面的命令把当前版本安装到 DSH 的 `web` profile：
 
 ```sh
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.0
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.1
 ```
 
 安装后重启 `dsh web`，然后进入侧栏 `插件 → 破限模式` 打开开关。开关状态保存在 `~/.dsh/profiles/web/cordis.patch.yml` 的 `id: unrestricted` 条目的 `config.enabled` 中，重启后仍然有效。
@@ -48,7 +48,7 @@ DSH 的原版系统提示词规定 agent 身份、计划模式和工具调用方
 - **Standard / PTC / Cordis**：在运行时通过 `system-prompt/assemble` waterfall 读取当前模式的完整原版提示词，校验关键锚点后插入交付契约与对应机制说明。
 - **Minimal**：由于原版 persona 使用 `complete: true`，插件用 agent 作用域的同名 persona 覆盖，并保留原 persona 作为开头。
 - **子代理和 plan 状态**：沿用父模式的融合结果，同时保留结构化输出与 plan 协议。
-- **提示词校验**：每次融合前核对 harness 身份、各模式 persona、plan 段首句、`run_code` 规则和 structured-output 首句。校验未通过时，该模式保持原版提示词，并在设置卡片中显示具体问题。
+- **提示词校验**：开机已启用时，等待预设声明注册完成后再校验；每次融合前核对 harness 身份、各模式 persona、plan 段首句、`run_code` 规则和 structured-output 首句。校验未通过时，该模式保持原版提示词，并在设置卡片中显示具体问题。
 - **预览**：优先返回真实 agent 刚组装的字节；还没有 agent 组装过该模式时退回 preset standing scope，此时 `{{model}}`、`{{cwd}}` 显示为字面占位符。
 
 详细改写说明见 [最新 DSH 提示词融合说明](docs/prompt-fusion.md)。
@@ -106,6 +106,9 @@ node tools/dump-prompts.mjs --repo <deepseek-harness-path> --out tests/fixtures
 
 # 组合真实 Web profile，验证开关前后的提示词和工具目录（不调用模型）
 node tools/verify-live.mjs --repo <deepseek-harness-path>
+
+# 验证开机已启用时四种预设都能完成融合
+node tools/verify-live.mjs --repo <deepseek-harness-path> --boot-enabled
 
 ```
 

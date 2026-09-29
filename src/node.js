@@ -36,7 +36,7 @@ import {
 export const name = 'dsh-unrestricted'
 
 /** Services required by this plugin (all host-plane residents of the web profile). */
-export const inject = ['settings', 'systemPrompt', 'agentPresets']
+export const inject = ['settings', 'systemPrompt', 'agentPresets', 'loader']
 
 const RPC_CHANNEL = '/dsh-unrestricted'
 
@@ -84,6 +84,8 @@ export function apply(ctx, config) {
 
   /** 用公开预设挂载接口读取当前配置；临时作用域在组装后释放。 */
   async function presetAssembly(presetId) {
+    // 预设声明与本插件是并列 Loader 条目；服务可用时，声明仍可能尚未注册。
+    await ctx.loader.await()
     const key = {}
     const scope = createScope(ctx, key)
     try {
@@ -350,6 +352,7 @@ export function apply(ctx, config) {
     })
     if (state.enabled) onEnable()
     return () => {
+      state.enabled = false
       unwatch()
       clearShadows()
     }
