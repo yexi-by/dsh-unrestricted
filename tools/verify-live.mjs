@@ -91,6 +91,7 @@ const installAnchor = join(repo, 'apps/cli/package.json')
 const profile = {
   name: 'spec', dir: profileDir, layers: [],
   patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
+  skippedBundles: [],
 }
 const resolution = await appBoot.createRuntimeResolution({ installAnchor, home, profile })
 const webDir = join(repo, 'packages/bundle/web-app')

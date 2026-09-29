@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "c36a83ff6bb95e3f82cf79f9be7c724270a8aa61",
-  "capturedAt": "2026-09-22T10:48:36.614Z",
+  "commit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+  "capturedAt": "2026-09-29T13:05:13.952Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -54,7 +54,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 6472
+      "promptBytes": 4609
     },
     "standard-plan": {
       "sections": [
@@ -107,7 +107,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 8818
+      "promptBytes": 6955
     },
     "ptc": {
       "sections": [
@@ -136,7 +136,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 35031
+      "promptBytes": 27552
     },
     "ptc-plan": {
       "sections": [
@@ -165,7 +165,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 37377
+      "promptBytes": 29898
     },
     "cordis": {
       "sections": [
@@ -221,7 +221,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 6472
+      "promptBytes": 4609
     },
     "cordis-plan": {
       "sections": [
@@ -277,7 +277,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 8818
+      "promptBytes": 6955
     },
     "minimal": {
       "sections": [
@@ -339,7 +339,7 @@
         "workflow",
         "write"
       ],
-      "promptBytes": 6472
+      "promptBytes": 4609
     }
   }
 }

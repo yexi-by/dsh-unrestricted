@@ -80,6 +80,7 @@ appBoot.initProfile(profileDir, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-
 const profile = {
   name: 'spec', dir: profileDir, layers: [],
   patchPath: join(profileDir, 'cordis.patch.yml'), patches: [],
+  skippedBundles: [],
 }
 const resolution = await appBoot.createRuntimeResolution({ installAnchor: INSTALL_ANCHOR, home, profile })
 const rootConfig = join(profileDir, 'cordis.yml')
