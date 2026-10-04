@@ -1,5 +1,7 @@
 # 上游吸收说明：v0.1.7 提示词重构
 
+> 简体中文。英文版见 [prompt-refactor-v0.1.7.en.md](./prompt-refactor-v0.1.7.en.md)。
+
 本文记录 dsh-unrestricted v0.1.7 从 [Jia-Ethan/codex-keysmith](https://github.com/Jia-Ethan/codex-keysmith)
 吸收了哪些东西、为什么、以及哪些没有照搬。
 

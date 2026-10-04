@@ -1,5 +1,7 @@
 # 最新 DSH 提示词融合说明
 
+> 简体中文。英文版见 [prompt-fusion.en.md](./prompt-fusion.en.md)。
+
 本文记录 dsh-unrestricted 面向最新 DSH（`0.2.0-rc.2`）的提示词融合实现。通过 `tools/dump-prompts.mjs` 提取 Web 组合下的各模式原版提示词至 `tests/fixtures/`，并在真实环境中完成全套融合与恢复验证。
 
 ## 融合设计与规则
