@@ -1,5 +1,7 @@
 # dsh-unrestricted
 
+简体中文 | [English](./README.en.md)
+
 当前版本 0.2.1 适配 DSH 0.2.0-rc.2（`639ed01539`）。在侧栏「插件 → 破限模式」打开配置。配置通过本体 ConfigEditor 保存到当前 profile 的 `cordis.patch.yml`，由 volatile Config 热更新。
 
 为 DeepSeek Harness（DSH）Web 提供可随时开关的破限提示词。它把一份**交付契约**融合进 Standard、PTC、Cordis、Minimal 及其子代理的最新原版系统提示词；关闭后完全恢复 DSH 官方提示词。开启前可以在设置卡片中预览即将写入的完整提示词。
@@ -51,7 +53,7 @@ DSH 的原版系统提示词规定 agent 身份、计划模式和工具调用方
 - **提示词校验**：开机已启用时，等待预设声明注册完成后再校验；每次融合前核对 harness 身份、各模式 persona、plan 段首句、`run_code` 规则和 structured-output 首句。校验未通过时，该模式保持原版提示词，并在设置卡片中显示具体问题。
 - **预览**：优先返回真实 agent 刚组装的字节；还没有 agent 组装过该模式时退回 preset standing scope，此时 `{{model}}`、`{{cwd}}` 显示为字面占位符。
 
-详细改写说明见 [最新 DSH 提示词融合说明](docs/prompt-fusion.md)。
+详细改写说明见 [最新 DSH 提示词融合说明](docs/prompt-fusion.md)，上游吸收说明见 [v0.1.7 提示词重构](docs/prompt-refactor-v0.1.7.md)。
 
 ## 更新与卸载
 
