@@ -1,6 +1,6 @@
 # Upstream adoption notes: the v0.1.7 prompt refactor
 
-> English. The Simplified Chinese original is [prompt-refactor-v0.1.7.md](./prompt-refactor-v0.1.7.md).
+> [简体中文](./prompt-refactor-v0.1.7.md) | **English** | [日本語](./prompt-refactor-v0.1.7.ja.md)
 
 This document records what dsh-unrestricted v0.1.7 adopted from [Jia-Ethan/codex-keysmith](https://github.com/Jia-Ethan/codex-keysmith), why, and what was deliberately not copied.
 

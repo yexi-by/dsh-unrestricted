@@ -1,6 +1,6 @@
 # dsh-unrestricted
 
-English | [简体中文](./README.md)
+[简体中文](./README.md) | **English** | [日本語](./README.ja.md)
 
 The current version 0.2.1 targets DSH 0.2.0-rc.2 (`639ed01539`). Open the configuration in the sidebar under Plugins, then Unrestricted mode. The configuration is saved by the built-in ConfigEditor into the `cordis.patch.yml` of the current profile and hot reloaded by the volatile Config.
 

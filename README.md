@@ -1,6 +1,6 @@
 # dsh-unrestricted
 
-简体中文 | [English](./README.en.md)
+**简体中文** | [English](./README.en.md) | [日本語](./README.ja.md)
 
 当前版本 0.2.1 适配 DSH 0.2.0-rc.2（`639ed01539`）。在侧栏「插件 → 破限模式」打开配置。配置通过本体 ConfigEditor 保存到当前 profile 的 `cordis.patch.yml`，由 volatile Config 热更新。
 

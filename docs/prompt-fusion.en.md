@@ -1,6 +1,6 @@
 # Prompt fusion for the latest DSH
 
-> English. The Simplified Chinese original is [prompt-fusion.md](./prompt-fusion.md).
+> [简体中文](./prompt-fusion.md) | **English** | [日本語](./prompt-fusion.ja.md)
 
 This document records the prompt fusion implementation of dsh-unrestricted for the latest DSH (`0.2.0-rc.2`). The original per-mode prompts of the Web composition are extracted into `tests/fixtures/` with `tools/dump-prompts.mjs`, and the complete fusion and restore cycle is verified in a real environment.
 
