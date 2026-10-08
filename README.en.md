@@ -20,7 +20,7 @@ The plugin is deeply integrated into DSH's prompt assembly pipeline. While injec
   - [Web Mode](#web-mode)
   - [Desktop App](#desktop-app)
   - [Local Source Install](#local-source-install)
-- [Usage & UI Features](#usage--ui-features)
+- [Usage (Double-Switch Activation)](#usage-double-switch-activation)
 - [Operational Boundaries](#operational-boundaries)
 - [Development & Testing](#development--testing)
 - [License & Credits](#license--credits)
@@ -112,7 +112,7 @@ dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.1
 # Or track master
 dsh plugin --profile web add github:yexi-by/dsh-unrestricted
 ```
-Restart `dsh web`, then open **Plugins → Unrestricted mode** in the sidebar to enable.
+Restart `dsh web`, then follow the [Usage section](#usage-double-switch-activation) to enable both the plugin and the unrestrict toggle.
 
 #### Update
 ```sh
@@ -146,7 +146,7 @@ On Windows, the default path is:
    ```powershell
    & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.1
    ```
-3. Launch the desktop app and enable "Unrestricted mode" under Settings → Plugins.
+3. Launch the desktop app and follow the activation steps below.
 
 #### 3. Update
 1. Completely exit the desktop app.
@@ -178,12 +178,19 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 
 ---
 
-## Usage & UI Features
+## Usage (Double-Switch Activation)
 
-In the **Plugins → Unrestricted mode** panel:
+> **Important: Both switches must be turned on for unrestrict rules to take effect!**
+>
+> 1. **Step 1 (Plugin Activation Switch)**: Navigate to **Plugins** in the sidebar. In the installed plugins list, find `dsh-unrestricted` (Unrestricted mode) and **toggle the plugin ON**. If the plugin is not enabled here, DSH will not load the plugin runtime at all.
+> 2. **Step 2 (Feature Toggle Switch)**: Navigate to **Unrestricted mode** in the sidebar/settings, and turn on the **"Enable unrestricted mode"** switch at the top.
+>
+> Both switches must be active for rules to be injected into the system prompt assembly pipeline.
+
+### Settings Panel Features
 
 - **Enable Switch**: Toggles unrestrict mode globally for future requests.
-- **Per-Mode Status**: Shows real-time injection status across Standard, PTC, Cordis, and Minimal modes (`Active` indicates successful anchor verification and injection).
+- **Per-Mode Status**: Shows real-time injection status across Standard, PTC, Cordis, and Minimal modes (`Active` indicates successful anchor verification and injection; if inactive, check whether the plugin is toggled on in the Plugins manager).
 - **Rule Fingerprint**: Displays the SHA-256 hash (first 16 hex characters) of the deployed unrestrict rule block.
 - **Prompt Preview**: Click **"Show preview"** under any mode to inspect the exact system prompt text, line count, and byte size.
 
