@@ -69,7 +69,6 @@ const overrides = [
   { id: 'webserver', inject: [], config: { host: '127.0.0.1', port: 0 } },
   { id: 'web-runtime', disabled: true },
   { id: 'session-telemetry-otel', disabled: true },
-  { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', inject: ['webServer'], config: { trustedHosts: [] } },
   { id: 'open-in-app', disabled: true },
@@ -127,7 +126,7 @@ function check(label, condition, detail = '') {
 }
 
 const AGENT_OPTIONS = { provider: 'deepseek', model: 'deepseek-chat' }
-const AGENT_META = { cwd: 'C:\\fixture\\workspace' }
+const AGENT_META = { cwd: home }
 const agents = new Map()
 
 async function presetAgent(id, suffix = '') {
@@ -303,8 +302,8 @@ try {
   check('minimal tools unchanged', minimalAfter.tools === baseline.minimal.tools)
 
   // Deploy preview: the card reads the contract from the same standing scope
-  // the probes use. A standing scope has no agent, so it binds no {{model}} /
-  // {{cwd}} and carries none of the agent-only sections (context:file-reference,
+  // the probes use. A standing scope has no agent, so it binds no {{model}}
+  // and carries none of the agent-only sections (context:file-reference,
   // tool:subagent) — the preview is the contract's placement, not a byte copy of
   // a live request. Both facts are pinned here.
   console.log('deploy preview')
@@ -315,7 +314,7 @@ try {
   const previewPersona = standardPreview.indexOf('You are a coding agent powered by the')
   const previewBlock = standardPreview.indexOf(rules.EXECUTION_MODE_BLOCK)
   check('preview places the contract behind the persona', previewPersona >= 0 && previewBlock > previewPersona)
-  check('preview leaves the unbound slots literal', standardPreview.includes('{{model}}') && standardPreview.includes('{{cwd}}'))
+  check('preview leaves the unbound model slot literal', standardPreview.includes('{{model}}'))
   check('the live prompt itself has no literal slots left', !/\{\{\w+\}\}/.test(liveStandard))
   // Filling the slots must land on the live prefix: identity, persona, contract.
   const filledPreview = standardPreview.replaceAll('{{model}}', 'deepseek-chat').replaceAll('{{cwd}}', AGENT_META.cwd)

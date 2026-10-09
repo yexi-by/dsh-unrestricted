@@ -6,6 +6,8 @@
 
 插件针对 DSH 的提示词组装机制进行了深度适配，在动态注入破限提示词的同时，完整保留 DSH 的工具调用协议、计划模式（Plan Mode）、代码执行（PTC）以及子代理运行逻辑。
 
+`0.2.2` 面向 DSH `0.2.1-alpha.2`（`d743267388`），将 Connection 的启动依赖迁移到 `webStartup`，并适配新版计划模式文案。计划段的完整正文和审批条件沿用官方内容；当前本机 Desktop `0.2.0-rc.2` 的旧文案也使用同一识别前缀。
+
 ---
 
 ## 目录
@@ -107,7 +109,7 @@
 #### 安装
 ```sh
 # 安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.1
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.2
 
 # 或安装 master 最新代码
 dsh plugin --profile web add github:yexi-by/dsh-unrestricted
@@ -144,7 +146,7 @@ dsh plugin --profile web remove dsh-unrestricted
 1. 完全退出正在运行的桌面客户端。
 2. 打开 PowerShell 或 CMD，执行安装命令：
    ```powershell
-   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.1
+   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.2
    ```
 3. 启动桌面客户端，按下方说明启用插件与功能开关。
 

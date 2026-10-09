@@ -107,7 +107,7 @@ For CLI and server setups running `dsh web`.
 #### Install
 ```sh
 # Install specific tag
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.1
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.2
 
 # Or track master
 dsh plugin --profile web add github:yexi-by/dsh-unrestricted
@@ -144,7 +144,7 @@ On Windows, the default path is:
 1. Completely exit the desktop app.
 2. Run in PowerShell or CMD:
    ```powershell
-   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.1
+   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.2
    ```
 3. Launch the desktop app and follow the activation steps below.
 

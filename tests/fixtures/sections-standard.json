@@ -61,11 +61,11 @@
   },
   {
     "name": "tool:subagent",
-    "text": "Start independent subagent delegations together in one assistant message and continue useful work while they run."
+    "text": "Start independent delegations with `subagent` or `subagent_fork` together in one assistant message and continue useful work while they run."
   },
   {
     "name": "tool:subagent_fork",
-    "text": "Start independent subagent_fork delegations together in one assistant message and continue useful work while they run."
+    "text": ""
   },
   {
     "name": "mcp-resource-servers",
@@ -77,6 +77,6 @@
   },
   {
     "name": "deployment:persona-suffix",
-    "text": "Your working directory is {{cwd}}."
+    "text": ""
   }
 ]

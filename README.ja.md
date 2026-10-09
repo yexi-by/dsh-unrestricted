@@ -105,7 +105,7 @@ CLI またはサーバー環境で `dsh web` を実行している場合。
 #### インストール
 ```sh
 # 指定バージョンのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.1
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.2
 
 # または master 最新コードのインストール
 dsh plugin --profile web add github:yexi-by/dsh-unrestricted
@@ -142,7 +142,7 @@ Windows の標準パス：
 1. デスクトップアプリを完全に終了します。
 2. PowerShell 等で以下を実行します：
    ```powershell
-   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.1
+   & "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.2
    ```
 3. デスクトップアプリを起動し、下記の使用方法に従って設定を完了します。
 

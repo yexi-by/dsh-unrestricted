@@ -16,7 +16,8 @@ export const ANCHORS = {
   identity: 'You are an AI agent powered by DeepSeek Harness.',
   personaStandard: 'You are a coding agent powered by the {{model}} model.',
   personaMinimal: 'You are a helpful software engineer assistant.',
-  planPrefix: 'You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode.',
+  // 只识别原生计划模式段；审批条件和完整正文保持官方内容，兼容本机 Desktop 的旧文案。
+  planPrefix: 'You are in plan mode. Stay in plan mode until ',
   ptcOnly: '`run_code` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.',
   structuredOutputPrefix: 'When you have your final answer, you MUST report it by calling the `structured_output` tool',
 }

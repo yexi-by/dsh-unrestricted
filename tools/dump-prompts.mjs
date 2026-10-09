@@ -47,6 +47,8 @@ const BASE_PATCH = join(repo, 'packages/bundle/base/cordis.patch.yml')
 const INSTALL_ANCHOR = join(repo, 'apps/cli/package.json')
 
 const home = await mkdtemp(join(tmpdir(), 'dsh-prompt-dump-'))
+const workspace = join(home, 'workspace')
+await mkdir(workspace)
 
 const overrides = [
   { id: 'storage-json', config: { root: join(home, 'storages') } },
@@ -54,7 +56,6 @@ const overrides = [
   { id: 'webserver', inject: [], config: { host: '127.0.0.1', port: 0 } },
   { id: 'web-runtime', disabled: true },
   { id: 'session-telemetry-otel', disabled: true },
-  { id: 'skill-badge', disabled: false },
   { id: 'modules', disabled: true },
   { id: 'connection', inject: ['webServer'], config: { trustedHosts: [] } },
   { id: 'open-in-app', disabled: true },
@@ -120,10 +121,11 @@ const meta = {
 
 async function dumpAgent(label, agent) {
   const assembly = await ctx.systemPrompt.assemble({ agent, scope: agent })
-  const rendered = renderPrompt(assembly)
+  // WorkingDirectory 验证实际目录；仅在落盘时将临时路径换为固定夹具路径。
+  const rendered = renderPrompt(assembly).replaceAll(workspace, FIXTURE_CWD)
   await writeFile(join(out, `original-${label}.md`), rendered)
   await writeFile(join(out, `sections-${label}.json`), JSON.stringify(
-    assembly.sections.map(section => ({ name: section.name, text: section.text })),
+    assembly.sections.map(section => ({ name: section.name, text: section.text.replaceAll(workspace, FIXTURE_CWD) })),
     null, 2,
   ) + '\n')
   await writeFile(join(out, `tools-${label}.json`), JSON.stringify(
@@ -142,7 +144,7 @@ let dumpIndex = 0
 async function withPreset(id, fn) {
   const handle = await ctx.agents.create({
     sessionId: SessionId(`dump-${id}-${dumpIndex++}`),
-    meta: { cwd: FIXTURE_CWD },
+    meta: { cwd: workspace },
     agentOptions: { provider: 'deepseek', model: 'deepseek-chat' },
     setup: agentCtx => ctx.agentPresets.mount(agentCtx, id).then(() => undefined),
   })
