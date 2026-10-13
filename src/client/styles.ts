@@ -5,6 +5,27 @@
  */
 
 const CSS = `
+.dsh-unrestricted-modules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dsh-unrestricted-module {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  padding: 10px;
+}
+.dsh-unrestricted-moduleHeader { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.dsh-unrestricted-moduleGroup { display: flex; flex-direction: column; gap: 8px; }
+.dsh-unrestricted-groupTitle { margin: 0; font-size: 13px; line-height: 18px; }
+.dsh-unrestricted-moduleSize { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+.dsh-unrestricted-module .dsh-unrestricted-note { margin: 5px 0 0; }
+.dsh-unrestricted-module .dsh-unrestricted-note strong { color: var(--dsw-alias-label-secondary); font-weight: 600; }
+.dsh-unrestricted-usage { margin: 0; font-size: 13px; }
+@media (max-width: 600px) { .dsh-unrestricted-modules { grid-template-columns: 1fr; } }
 .dsh-unrestricted-card {
   display: block;
   width: 100%;
@@ -195,8 +216,7 @@ const CSS = `
   color: var(--dsw-alias-label-secondary);
 }
 
-.dsh-unrestricted-presetId,
-.dsh-unrestricted-fingerprint {
+.dsh-unrestricted-presetId {
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 4px;
   padding: 1px 5px;
@@ -205,11 +225,6 @@ const CSS = `
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 16px;
-}
-
-.dsh-unrestricted-fingerprint {
-  color: var(--dsw-alias-label-primary);
-  letter-spacing: 0.4px;
 }
 
 .dsh-unrestricted-inlineAction {
@@ -270,6 +285,7 @@ const CSS = `
 .dsh-unrestricted-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -293,6 +309,35 @@ const CSS = `
   outline-offset: 2px;
 }
 
+.dsh-unrestricted-helpActions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.dsh-unrestricted-helpAction {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.dsh-unrestricted-actionHelp {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dsh-unrestricted-actionHelp strong {
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .dsh-unrestricted-helpAction { grid-template-columns: 1fr; gap: 6px; }
+  .dsh-unrestricted-helpAction button { justify-self: start; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dsh-unrestricted-summary::after { transition: none; }
 }
@@ -301,7 +346,8 @@ const CSS = `
 /** Inject the stylesheet once; the tag id doubles as the re-evaluation guard. */
 export function ensureStyles(): void {
   if (typeof document === 'undefined') return
-  if (document.querySelector('style[data-plugin="dsh-unrestricted"]') !== null) return
+  const existing = document.querySelector<HTMLStyleElement>('style[data-plugin="dsh-unrestricted"]')
+  if (existing !== null) { existing.textContent = CSS; return }
   const tag = document.createElement('style')
   tag.dataset.plugin = 'dsh-unrestricted'
   tag.textContent = CSS

@@ -11,9 +11,10 @@ import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: the ctx.configForms Context merge.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import { MODULE_IDS, MODULE_GROUPS, DEFAULT_MODULES, resolveModules, type ModuleId, type ModuleSettings, type EnableGroup } from '../module-config.js'
 
 /** The toggle section stored in the `unrestricted` settings namespace. */
-export interface UnrestrictedSettings {
+export interface UnrestrictedSettings extends Partial<ModuleSettings> {
   enabled?: boolean
 }
 
@@ -26,15 +27,14 @@ export interface UnrestrictedModeState {
 /** Host status endpoint payload. */
 export interface UnrestrictedStatus {
   enabled: boolean
-  /** Fingerprint of the contract bytes the host half deploys. */
-  contract: string
   modes: Record<string, UnrestrictedModeState>
+  modules: Array<{ id: ModuleId; enabled: boolean; characters: number; bytes: number }>
+  usage: { characters: number; bytes: number; fullCharacters: number; savedCharacters: number }
 }
 
 /** Deploy preview for one preset: what switching on would actually assemble. */
 export interface UnrestrictedPreview {
   presetId: string
-  contract: string
   available: boolean
   /** `live` = bytes a live agent received; `standing` = preset scope, no agent bound. */
   source?: 'live' | 'standing'
@@ -42,6 +42,8 @@ export interface UnrestrictedPreview {
   text?: string
   bytes?: number
   lines?: number
+  addedCharacters?: number
+  addedBytes?: number
   /** Why no preview could be built; present when unavailable. */
   reason?: string
 }
@@ -57,6 +59,7 @@ export interface UnrestrictedPreviewEntry {
 export interface UnrestrictedViewSnapshot {
   /** Persisted toggle; undefined until the settings scope first syncs. */
   enabled: boolean
+  modules: ModuleSettings
   /** Whether the Host document accepts writes. */
   writable: boolean
   /** Settings scope sync state. */
@@ -86,6 +89,9 @@ export interface UnrestrictedCardInjected {
   }
   /** Persist the toggle. */
   setEnabled: (enabled: boolean) => Promise<void>
+  setModule: (id: ModuleId, enabled: boolean) => Promise<void>
+  /** Open one group in a single native mutation, preserving every other choice. */
+  enableModules: (group: EnableGroup) => Promise<void>
   /** Re-run the host-side anchor checks and refresh. */
   recheck: () => Promise<void>
   /** Re-read host status. */
@@ -113,12 +119,14 @@ export function createUnrestrictedController(ctx: Context) {
 
   let snapshot: UnrestrictedViewSnapshot = {
     enabled: false,
+    modules: { ...DEFAULT_MODULES },
     writable: false,
     settingsStatus: 'loading',
     status: null,
     previews: {},
   }
   const listeners = new Set<() => void>()
+  let previewGeneration = 0
 
   const view: UnrestrictedViewSource = {
     getSnapshot: () => snapshot,
@@ -130,12 +138,17 @@ export function createUnrestrictedController(ctx: Context) {
 
   function publish(): void {
     const settingsSnapshot = settings.getSnapshot()
+    const enabled = settingsSnapshot.value?.enabled === true
+    const modules = resolveModules(settingsSnapshot.value)
+    const changed = enabled !== snapshot.enabled || MODULE_IDS.some(id => modules[id] !== snapshot.modules[id])
+    if (changed) previewGeneration++
     snapshot = {
-      enabled: settingsSnapshot.value?.enabled === true,
+      enabled,
+      modules,
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
-      previews: snapshot.previews,
+      previews: changed ? {} : snapshot.previews,
       message: snapshot.message,
     }
     for (const listener of listeners) listener()
@@ -150,7 +163,8 @@ export function createUnrestrictedController(ctx: Context) {
   async function refresh(): Promise<void> {
     try {
       const status = await call<UnrestrictedStatus>('status', {})
-      snapshot = { ...snapshot, status, message: undefined }
+      previewGeneration++
+      snapshot = { ...snapshot, status, previews: {}, message: undefined }
       publish()
     } catch (error) {
       snapshot = { ...snapshot, message: messageOf(error) }
@@ -158,18 +172,39 @@ export function createUnrestrictedController(ctx: Context) {
     }
   }
 
-  async function setEnabled(enabled: boolean): Promise<void> {
-    await settings.set('enabled', enabled)
-    publish()
-    // Give the host settings watcher one turn before reading its derived state.
-    setTimeout(() => void refresh(), 300)
+  async function setField(field: 'enabled' | ModuleId, enabled: boolean): Promise<void> {
+    try {
+      await settings.set(field, enabled)
+      publish()
+      // Give the host volatile watcher one turn before reading its derived state.
+      setTimeout(() => void refresh(), 300)
+    } catch (error) {
+      snapshot = { ...snapshot, message: messageOf(error) }
+      publish()
+    }
+  }
+
+  const setEnabled = (enabled: boolean) => setField('enabled', enabled)
+  const setModule = (id: ModuleId, enabled: boolean) => setField(id, enabled)
+
+  async function enableModules(group: EnableGroup): Promise<void> {
+    try {
+      const ids = group === 'all' ? MODULE_IDS : MODULE_GROUPS[group]
+      const accepted = await settings.mutate(ids.map(id => ({ op: 'set', path: [id], value: true })))
+      if (!accepted) throw new Error('Module switches were not saved')
+      publish()
+      setTimeout(() => void refresh(), 300)
+    } catch (error) {
+      snapshot = { ...snapshot, message: messageOf(error) }
+      publish()
+    }
   }
 
   async function recheck(): Promise<void> {
     try {
       const status = await call<UnrestrictedStatus>('recheck', {})
-      // The recheck invalidates every cached preview: the deployed bytes may
-      // have changed under a new master.
+      // Reject previews still in flight from before the recheck.
+      previewGeneration++
       snapshot = { ...snapshot, status, previews: {}, message: undefined }
       publish()
     } catch (error) {
@@ -184,6 +219,7 @@ export function createUnrestrictedController(ctx: Context) {
    * @param presetId - preset id from the card's row.
    */
   async function loadPreview(presetId: string): Promise<void> {
+    const generation = previewGeneration
     snapshot = {
       ...snapshot,
       previews: { ...snapshot.previews, [presetId]: { status: 'loading' } },
@@ -191,11 +227,13 @@ export function createUnrestrictedController(ctx: Context) {
     publish()
     try {
       const preview = await call<UnrestrictedPreview>('preview', { presetId })
+      if (generation !== previewGeneration) return
       snapshot = {
         ...snapshot,
         previews: { ...snapshot.previews, [presetId]: { status: 'ready', preview } },
       }
     } catch (error) {
+      if (generation !== previewGeneration) return
       snapshot = {
         ...snapshot,
         previews: { ...snapshot.previews, [presetId]: { status: 'failed', message: messageOf(error) } },
@@ -221,7 +259,7 @@ export function createUnrestrictedController(ctx: Context) {
   void refresh()
   return {
     face: (): UnrestrictedCardInjected => ({
-      hooks: { view }, setEnabled, recheck, refresh, loadPreview,
+      hooks: { view }, setEnabled, setModule, enableModules, recheck, refresh, loadPreview,
     }),
   }
 }

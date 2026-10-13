@@ -2,7 +2,7 @@
   "name": "dsh-unrestricted",
   "version": "0.2.2",
   "private": true,
-  "description": "Toggleable unrestricted mode for DeepSeek Harness: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
+  "description": "Independent functional prompt switches for DeepSeek Harness; compatibility defaults preserve dsh-unrestricted 0.2.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -28,7 +28,8 @@
     "README.ja.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
-    "locale"
+    "locale",
+    "MODULAR.md"
   ],
   "dsh": {
     "bundle": {
@@ -59,6 +60,37 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/schemastery": "3.18.4",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-api-remotes": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.0-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/schemastery": "3.18.4",
+    "@deepseek-ai/dsh-system-prompt": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.0-rc.2"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-system-prompt": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-scope": {
+      "optional": true
+    }
   }
 }

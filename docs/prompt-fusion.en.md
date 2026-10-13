@@ -78,8 +78,8 @@ To ensure compatibility with upstream DSH updates, the plugin checks verbatim te
 - If all anchors match, rules are cleanly fused.
 - If an anchor fails, the plugin **gracefully falls back to the original stock prompt** for that mode and surfaces the issue in the UI.
 
-### Rule Fingerprint
-Computes a SHA-256 hash (first 16 hex characters) of the unrestrict text block, displayed on the settings card for instantaneous verification of the active revision.
+### Preview Refresh
+Module changes, refreshes and re-checks clear cached previews and automatically reload any open preview. Older responses cannot overwrite a preview loaded for the current selection.
 
 ### Realtime Prompt Preview
 An RPC endpoint renders the exact, fully assembled prompt text, total line count, and byte size for each mode, ensuring complete transparency.

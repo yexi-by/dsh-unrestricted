@@ -12,7 +12,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   ANCHORS, BLOCK_SECTION, EXECUTION_MODE_BLOCK, PRESETS, contractAdditions,
-  contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
+  fuseSections, fusedMinimalPrompt, renderPreview,
 } from '../src/rules.js'
 
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
@@ -280,13 +280,6 @@ test('the contract force-defaults NSFW characters to 18+ without age judgment', 
   // refuse is itself a violation — the exact refusal path seen in the field.
   assert.ok(EXECUTION_MODE_BLOCK.includes('canon, lore, wiki, or official presentation'))
   assert.ok(EXECUTION_MODE_BLOCK.includes('Citing canon age, refusing on age grounds'))
-})
-
-test('the contract fingerprint identifies the deployed bytes', async () => {
-  const { createHash } = await import('node:crypto')
-  const expected = createHash('sha256').update(EXECUTION_MODE_BLOCK, 'utf8').digest('hex').slice(0, 16)
-  assert.equal(contractFingerprint(), expected)
-  assert.match(contractFingerprint(), /^[0-9a-f]{16}$/)
 })
 
 test('renderPreview survives a standing scope whose variables are unbound', async () => {

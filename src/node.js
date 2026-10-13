@@ -29,8 +29,10 @@ import z from '@deepseek-ai/schemastery'
 import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import {
-  PRESETS, PRESET_RULES, contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
+  PRESETS, PRESET_RULES, fuseSections, fusedMinimalPrompt, renderPreview,
 } from './rules.js'
+import { MODULE_IDS, DEFAULT_MODULES, ALL_MODULES, resolveModules } from './module-config.js'
+import { executionModeBlock, moduleUsage } from './prompt-modules.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'dsh-unrestricted'
@@ -42,7 +44,8 @@ const RPC_CHANNEL = '/dsh-unrestricted'
 
 export const Config = z.object({
   enabled: z.boolean().default(false),
-}).default({ enabled: false }).volatile()
+  ...Object.fromEntries(MODULE_IDS.map(id => [id, z.boolean().default(DEFAULT_MODULES[id])])),
+}).default({ enabled: false, ...DEFAULT_MODULES }).volatile()
 
 /** Human-readable error text for status and RPC error branches. */
 function messageOf(error) {
@@ -63,6 +66,7 @@ export function apply(ctx, config) {
 
   const state = {
     enabled: config.get().enabled,
+    modules: resolveModules(config.get()),
     /** presetId -> issue strings; a preset with an empty list is verified. */
     startup: new Map(),
     /** presetId -> in-flight startup check. */
@@ -108,14 +112,14 @@ export function apply(ctx, config) {
       const issues = []
       try {
         const assembly = await presetAssembly(presetId)
-        const fused = fuseSections(assembly.sections, presetId)
+        const fused = fuseSections(assembly.sections, presetId, { modules: ALL_MODULES })
         if (fused.issues !== undefined) issues.push(...fused.issues)
       } catch (error) {
         issues.push(`preset probe failed: ${messageOf(error)}`)
       }
       state.startup.set(presetId, issues)
       if (presetId === 'minimal') {
-        state.fusedMinimal = issues.length === 0 ? fusedMinimalPrompt() : null
+        state.fusedMinimal = issues.length === 0 ? fusedMinimalPrompt(state.modules) : null
       }
     })().catch((error) => {
       state.startup.set(presetId, [`preset probe failed: ${messageOf(error)}`])
@@ -141,7 +145,7 @@ export function apply(ctx, config) {
    * @param agent - the created agent (from `agent/created` or `agents.list()`).
    */
   function shadowMinimal(agent) {
-    if (!state.enabled || state.fusedMinimal === null || state.shadows.has(agent)) return
+    if (!state.enabled || executionModeBlock(state.modules) === '' || state.fusedMinimal === null || state.shadows.has(agent)) return
     let presetId
     try {
       presetId = ctx.agentPresets.composedPreset(agent.ctx)
@@ -187,7 +191,7 @@ export function apply(ctx, config) {
     for (const presetId of PRESETS) {
       const issues = modeIssues(presetId)
       modes[presetId] = {
-        state: !state.enabled
+        state: !state.enabled || executionModeBlock(state.modules) === ''
           ? 'off'
           : !state.startup.has(presetId)
             ? 'checking'
@@ -195,7 +199,18 @@ export function apply(ctx, config) {
         issues,
       }
     }
-    return { enabled: state.enabled, contract: contractFingerprint(), modes }
+    const block = executionModeBlock(state.modules)
+    const full = executionModeBlock(ALL_MODULES)
+    return {
+      enabled: state.enabled, modes,
+      modules: moduleUsage(state.modules),
+      usage: {
+        characters: state.enabled ? block.length : 0,
+        bytes: state.enabled ? Buffer.byteLength(block, 'utf8') : 0,
+        fullCharacters: full.length,
+        savedCharacters: full.length - (state.enabled ? block.length : 0),
+      },
+    }
   }
 
   /** One line-count/byte summary so the preview does not ship a whole prompt. */
@@ -234,15 +249,14 @@ export function apply(ctx, config) {
   /**
    * Build the deploy preview for ONE preset from the same assembly path the
    * live fusion uses. This is the "look before you switch" surface: exact
-   * fused prompt text, its size, and the contract fingerprint it embeds.
+   * fused prompt text and its size.
    * Read-only — it never mutates prompt state.
    * @param presetId - preset id from the card.
    * @returns the preview payload, or a message naming why none is available.
    */
   async function previewFor(presetId) {
-    const contract = contractFingerprint()
     if (!PRESETS.includes(presetId)) {
-      return { presetId, contract, available: false, reason: `unknown preset "${presetId}"` }
+      return { presetId, available: false, reason: `unknown preset "${presetId}"` }
     }
     // Best source first: the exact bytes a live agent just received. Only when
     // no agent has assembled this preset yet (the toggle is still off) does the
@@ -250,21 +264,28 @@ export function apply(ctx, config) {
     // sections and leaves {{model}} / {{cwd}} as literal slots.
     const cached = state.fusedText.get(presetId)
     if (cached !== undefined) {
-      return { presetId, contract, available: true, source: 'live', ...summarize(cached) }
+      return { presetId, available: true, source: 'live', ...cached }
     }
     try {
       const assembly = await presetAssembly(presetId)
-      const fused = presetId === 'minimal'
-        ? { sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt() }] }
-        : fuseSections(assembly.sections, presetId)
+      const fused = !state.enabled
+        ? { sections: assembly.sections }
+        : presetId === 'minimal'
+          ? { sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt(state.modules) }] }
+          : fuseSections(assembly.sections, presetId, { modules: state.modules })
       if (fused.issues !== undefined) {
-        return { presetId, contract, available: false, reason: fused.issues.join('; ') }
+        return { presetId, available: false, reason: fused.issues.join('; ') }
       }
       const variables = { ...assembly.variables, ...previewVariables() }
       const text = renderPreview({ ...assembly, sections: fused.sections, variables }, renderPrompt)
-      return { presetId, contract, available: true, source: 'standing', ...summarize(text) }
+      const originalText = renderPreview({ ...assembly, variables }, renderPrompt)
+      return {
+        presetId, available: true, source: 'standing', ...summarize(text),
+        addedCharacters: text.length - originalText.length,
+        addedBytes: Buffer.byteLength(text, 'utf8') - Buffer.byteLength(originalText, 'utf8'),
+      }
     } catch (error) {
-      return { presetId, contract, available: false, reason: `preview probe failed: ${messageOf(error)}` }
+      return { presetId, available: false, reason: `preview probe failed: ${messageOf(error)}` }
     }
   }
 
@@ -281,6 +302,7 @@ export function apply(ctx, config) {
         return ok(await previewFor(presetId))
       }
       case 'recheck': {
+        clearShadows()
         state.checking.clear()
         state.startup.clear()
         state.runtime.clear()
@@ -317,7 +339,7 @@ export function apply(ctx, config) {
     }
     if (!usable(presetId)) return original
     const isSubagent = original.contexts.some(entry => entry.name === 'subagent:delegation')
-    const fused = fuseSections(original.sections, presetId, { isSubagent })
+    const fused = fuseSections(original.sections, presetId, { isSubagent, modules: state.modules })
     if (fused.issues !== undefined) {
       state.runtime.set(presetId, fused.issues)
       return original
@@ -325,7 +347,12 @@ export function apply(ctx, config) {
     // Keep the deployed fusion available for the card's preview. Rendering is
     // display-only and never feeds back into the assembly returned to the loop.
     try {
-      state.fusedText.set(presetId, renderPreview({ ...original, sections: fused.sections }, renderPrompt))
+      const text = renderPreview({ ...original, sections: fused.sections }, renderPrompt)
+      const originalText = renderPreview(original, renderPrompt)
+      state.fusedText.set(presetId, {
+        ...summarize(text), addedCharacters: text.length - originalText.length,
+        addedBytes: Buffer.byteLength(text, 'utf8') - Buffer.byteLength(originalText, 'utf8'),
+      })
     } catch {
       state.fusedText.delete(presetId) // an unresolvable variable only costs the preview
     }
@@ -345,7 +372,13 @@ export function apply(ctx, config) {
   ctx.effect(() => {
     const unwatch = ctx.on('loader/volatile-update', () => {
       const enabled = config.get().enabled
-      if (enabled === state.enabled) return
+      const modules = resolveModules(config.get())
+      if (enabled === state.enabled && MODULE_IDS.every(id => modules[id] === state.modules[id])) return
+      clearShadows()
+      state.fusedText.clear()
+      state.modules = modules
+      state.fusedMinimal = modeIssues('minimal').length === 0 && state.startup.has('minimal')
+        ? fusedMinimalPrompt(modules) : null
       state.enabled = enabled
       if (enabled) onEnable()
       else onDisable()

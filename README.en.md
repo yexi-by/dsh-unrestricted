@@ -191,7 +191,6 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 
 - **Enable Switch**: Toggles unrestrict mode globally for future requests.
 - **Per-Mode Status**: Shows real-time injection status across Standard, PTC, Cordis, and Minimal modes (`Active` indicates successful anchor verification and injection; if inactive, check whether the plugin is toggled on in the Plugins manager).
-- **Rule Fingerprint**: Displays the SHA-256 hash (first 16 hex characters) of the deployed unrestrict rule block.
 - **Prompt Preview**: Click **"Show preview"** under any mode to inspect the exact system prompt text, line count, and byte size.
 
 ---
