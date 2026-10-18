@@ -28,7 +28,7 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'configForms']
 /** Settings nav position: after Plugins (15), before the later feature sections. */
 const SECTION_ORDER = 16
 
-/** Composer dock position: after the stats strip (0), before save-token (85). */
+/** Composer tool-row position: after the shipped mode chips, before the model seat. */
 const DOCK_ORDER = 20
 
 /**
@@ -49,8 +49,8 @@ export function apply(ctx: Context): void {
     inject: () => controller.face(),
   }, UnrestrictedCard))
 
-  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-    name: 'conversation.composer.dock',
+  ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
+    name: 'conversation.input.left',
     id: 'unrestricted-toggle',
     order: DOCK_ORDER,
     locale: NS,

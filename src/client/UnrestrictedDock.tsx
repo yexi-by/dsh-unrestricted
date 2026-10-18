@@ -1,24 +1,25 @@
 /**
- * The composer-dock switch: one ambient button below the composer card that
- * flips the same persisted toggle the settings page owns. It subscribes to the
- * shared controller view, so both surfaces always show the same state.
+ * The composer tool-row switch: one compact chip inside the resident composer
+ * card, next to the shipped permission and plan controls. It flips the same
+ * persisted toggle the settings page owns, and subscribes to the shared
+ * controller view so both surfaces always show the same state.
  */
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: the conversation composer dock slot contract.
+// Type-only: the conversation composer slot contract.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { UnrestrictedCardInjected } from './controller.ts'
 import type { UnrestrictedLocaleKey } from './locales.ts'
 
-/** Full component props assembled by the composer dock renderer. */
+/** Full component props assembled by the composer tool-row renderer. */
 export type UnrestrictedDockProps =
-  PropsRuntime<'conversation.composer.dock'>
+  PropsRuntime<'conversation.input.left'>
   & PropsLocale<'settings.unrestricted'>
   & InjectFace<UnrestrictedCardInjected>
 
 /**
- * Render the dock switch.
+ * Render the tool-row switch.
  * @param props - locale copy, the shared view, and the toggle action.
- * @returns the dock button.
+ * @returns the switch chip.
  */
 export function UnrestrictedDock(props: UnrestrictedDockProps) {
   const { t, toggle } = props
@@ -32,19 +33,17 @@ export function UnrestrictedDock(props: UnrestrictedDockProps) {
     : view.enabled ? 'dockAriaDisable' : 'dockAriaEnable'
 
   return (
-    <div className="dsh-unrestricted-dock">
-      <button
-        type="button"
-        className="dsh-unrestricted-dockButton"
-        data-state={state}
-        aria-pressed={view.enabled}
-        aria-label={t(aria)}
-        disabled={!ready || view.busy}
-        onClick={() => { void toggle() }}
-      >
-        <span className="dsh-unrestricted-dockDot" data-state={state} />
-        <span>{t(view.enabled ? 'dockDisable' : 'dockEnable')}</span>
-      </button>
-    </div>
+    <button
+      type="button"
+      className="dsh-unrestricted-chip"
+      data-state={state}
+      aria-pressed={view.enabled}
+      aria-label={t(aria)}
+      disabled={!ready || view.busy}
+      onClick={() => { void toggle() }}
+    >
+      <span className="dsh-unrestricted-chipDot" data-state={state} />
+      <span>{t(view.enabled ? 'dockDisable' : 'dockEnable')}</span>
+    </button>
   )
 }

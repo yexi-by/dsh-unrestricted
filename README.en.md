@@ -190,14 +190,14 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 > **Important: Both switches must be turned on for unrestrict rules to take effect!**
 >
 > 1. **Step 1 (Plugin Activation Switch)**: Navigate to **Plugins** in the sidebar. In the installed plugins list, find `dsh-unrestricted` (Unrestricted mode) and **toggle the plugin ON**. If the plugin is not enabled here, DSH will not load the plugin runtime at all.
-> 2. **Step 2 (Feature Toggle Switch)**: Two equivalent ways — pick either. ① Open **Settings** → **Unrestricted mode** in the left nav and check **"Enable unrestricted mode"** at the top; ② or simply click the **"Unrestricted"** button that sits right below the chat composer in any session (it lights up when active).
+> 2. **Step 2 (Feature Toggle Switch)**: Two equivalent ways — pick either. ① Open **Settings** → **Unrestricted mode** in the left nav and check **"Enable unrestricted mode"** at the top; ② or simply click the **"Unrestricted"** button inside the chat composer's tool row (right after the `+` and mode chips; it lights up when active, and is visible on the new-session welcome screen too).
 >
 > Both switches must be active for rules to be injected into the system prompt assembly pipeline.
 
 ### Settings Panel Features
 
 - **Enable Switch**: Toggles unrestrict mode globally for future requests.
-- **Composer Toggle**: A persistent **"Unrestricted"** button below the chat input shows the current state (`on` / `off`); clicking it flips the same switch the settings panel uses.
+- **Composer Toggle**: A persistent **"Unrestricted"** button inside the chat composer card's tool row (after the `+` and the permission/plan chips, before the model seat) shows the current state (`on` / `off`); clicking it flips the same switch the settings panel uses. It is visible both on the new-session welcome screen and inside existing sessions.
 - **Per-Mode Status**: Shows real-time injection status for every preset — the four built-ins (Standard, PTC, Cordis, Minimal) plus any other preset enumerated at runtime (for example Adg multi-agent mode). `Active` indicates successful anchor verification and injection; if inactive, check whether the plugin is toggled on in the Plugins manager.
 - **Rule Fingerprint**: Displays the SHA-256 hash (first 16 hex characters) of the deployed unrestrict rule block.
 - **Prompt Preview**: Click **"Show preview"** under any mode to inspect the exact system prompt text, line count, and byte size.
