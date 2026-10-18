@@ -1,7 +1,7 @@
 /**
  * Host-package resolution for a `link:`-installed bundle.
  *
- * A bundle that lives outside the profile (`link:D:/dsh/plugins/...`) has no
+ * A bundle that lives outside the profile (`link:/path/to/plugins/...`) has no
  * `node_modules` of its own, so a bare `import '@deepseek-ai/dsh-scope'` fails
  * with ERR_MODULE_NOT_FOUND and the Loader reports
  * `unrestricted (dsh-unrestricted): failed to import` — the whole plugin,
