@@ -1,15 +1,19 @@
-/** 在本体的插件管理页面提供开关、各模式状态及部署预览。 */
+/**
+ * Browser half: owns the settings page and the composer-dock switch, both fed
+ * by one controller so the two surfaces never disagree about the toggle.
+ */
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: the renderer provides the ctx.slots service used for registration.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-// Type-only: 本插件配置所在的原生 keyed 槽位。
-import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+// Type-only: the conversation composer dock slot contract.
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { createUnrestrictedController } from './controller.ts'
 import { en, NS, zh, type UnrestrictedLocaleKey } from './locales.ts'
 import { ensureStyles } from './styles.ts'
 import { UnrestrictedCard } from './UnrestrictedCard.tsx'
+import { UnrestrictedDock } from './UnrestrictedDock.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -18,18 +22,38 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-/** Services required by the registration and the controller. */
+/** Services required by the registrations and the controller. */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'configForms']
 
-/** 注册本插件的配置页面。 */
+/** Settings nav position: after Plugins (15), before the later feature sections. */
+const SECTION_ORDER = 16
+
+/** Composer dock position: after the stats strip (0), before save-token (85). */
+const DOCK_ORDER = 20
+
+/**
+ * Register the settings page and the composer-dock switch.
+ * @param ctx - the browser plugin context.
+ */
 export function apply(ctx: Context): void {
   ensureStyles()
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-unrestricted: dictionaries')
   const controller = createUnrestrictedController(ctx)
-  ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
-    name: 'plugins.bundle.config',
-    key: 'dsh-unrestricted',
+
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'unrestricted',
+    order: SECTION_ORDER,
+    label: () => ctx.locale.bind(NS)('sectionLabel'),
     locale: NS,
     inject: () => controller.face(),
   }, UnrestrictedCard))
+
+  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+    name: 'conversation.composer.dock',
+    id: 'unrestricted-toggle',
+    order: DOCK_ORDER,
+    locale: NS,
+    inject: () => controller.face(),
+  }, UnrestrictedDock))
 }

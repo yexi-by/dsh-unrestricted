@@ -162,8 +162,30 @@ test('ptc mode reports a changed run_code anchor', async () => {
   assert.ok(fuseSections(tampered, 'ptc').issues.some(issue => issue.includes('run_code')))
 })
 
-test('unknown presets are refused', () => {
-  assert.ok(fuseSections([], 'my-custom-preset').issues[0].includes('unknown preset'))
+test('unknown presets fuse generically instead of being refused', () => {
+  const custom = [
+    { name: 'deployment:persona-prefix', order: 0, text: '你是自定义调度者。' },
+    { name: 'harness:identity', order: 1, text: 'custom identity line' },
+    { name: 'plan:policy', order: 2, text: 'custom plan policy' },
+    { name: 'tools:ptc-only', order: 3, text: 'custom ptc rule' },
+  ]
+  const fused = fuseSections(custom, 'my-custom-preset')
+  assert.deepEqual(fused.issues, undefined)
+  const names = fused.sections.map(section => section.name)
+  assert.equal(names[0], 'deployment:persona-prefix')
+  assert.equal(names[1], BLOCK_SECTION)
+  // Every original text survives verbatim as a prefix of its fused version.
+  for (const section of custom) {
+    const out = fused.sections.find(entry => entry.name === section.name)
+    assert.ok(out.text.startsWith(section.text), `${section.name} lost its original text`)
+    if (section.name !== 'harness:identity') assert.ok(out.text.length > section.text.length)
+  }
+  // A custom persona is never treated as tampering.
+  assert.ok(fused.sections[0].text.includes('unrestricted local execution mode'))
+  // Empty section list still deploys the contract at index 0.
+  const bare = fuseSections([], 'my-custom-preset')
+  assert.deepEqual(bare.issues, undefined)
+  assert.equal(bare.sections[0].name, BLOCK_SECTION)
 })
 
 test('minimal fused prompt is persona + pointer + block, anchors intact, and preserves structured_output', () => {
@@ -347,7 +369,8 @@ test('renderPreview passes bound variables through untouched', () => {
   assert.equal(renderPreview(assembly, render), 'You run on deepseek-chat in C:\\fixture.')
 })
 
-test('contractAdditions describes exactly what each preset receives', () => {  const standard = contractAdditions('standard')
+test('contractAdditions describes exactly what each preset receives', () => {
+  const standard = contractAdditions('standard')
   assert.equal(standard.block, EXECUTION_MODE_BLOCK)
   assert.ok(standard.planNote.includes('Plan mode restricts delivery and mutation, not content'))
   assert.equal(standard.ptcNote, '')
@@ -357,9 +380,14 @@ test('contractAdditions describes exactly what each preset receives', () => {  c
   assert.ok(ptc.ptcNote.includes('this rule governs only the tool-call transport'))
   assert.ok(ptc.ptcNote.includes('not inside the program'))
 
-  // minimal has no plan section; unknown presets have no additions at all.
+  // minimal has no plan section.
   assert.equal(contractAdditions('minimal').planNote, '')
-  assert.equal(contractAdditions('not-a-preset'), undefined)
+  // Unknown presets fuse generically: the block and pointer always deploy, and
+  // the boundary notes are appended only where the section exists.
+  const generic = contractAdditions('adg')
+  assert.equal(generic.block, EXECUTION_MODE_BLOCK)
+  assert.ok(generic.pointer.length > 0)
+  assert.equal(contractAdditions('').pointer, generic.pointer)
 })
 
 test('fixture coverage: every shipped preset was captured', async () => {

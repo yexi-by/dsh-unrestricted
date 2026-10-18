@@ -1,33 +1,42 @@
 /**
- * The unrestricted settings card: one persisted toggle, the per-preset fusion
+ * The unrestricted settings page: one persisted toggle, the per-preset fusion
  * state reported by the host half, and the deploy preview for the preset the
- * user is inspecting. All data arrives through the props shares; the only
- * component-local state is which preview is open.
+ * user is inspecting. The preset roster is whatever the host reports, so a
+ * preset added after this build (a user-authored `adg`, or any future one)
+ * appears here without a plugin change. All data arrives through the props
+ * shares; the only component-local state is which preview is open.
  */
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-// Type-only: 本体插件管理页的配置槽位。
-import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+// Type-only: the settings section slot contract.
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { UnrestrictedCardInjected, UnrestrictedModeState } from './controller.ts'
 import type { UnrestrictedLocaleKey } from './locales.ts'
 
 /** Full component props assembled by the Settings slot renderer. */
 export type UnrestrictedCardProps =
-  PropsRuntime<'plugins.bundle.config'>
+  PropsRuntime<'settings.section'>
   & PropsLocale<'settings.unrestricted'>
   & InjectFace<UnrestrictedCardInjected>
 
-/** Mode rows in display order, with their locale label keys. */
-const MODE_ROWS: ReadonlyArray<{
+/** One rendered mode row. */
+interface ModeRow {
   id: string
-  labelKey: UnrestrictedLocaleKey
-  presetKey: UnrestrictedLocaleKey
-}> = [
-  { id: 'standard', labelKey: 'modeStandard', presetKey: 'presetStandard' },
-  { id: 'ptc', labelKey: 'modePtc', presetKey: 'presetPtc' },
-  { id: 'cordis', labelKey: 'modeCordis', presetKey: 'presetCordis' },
-  { id: 'minimal', labelKey: 'modeMinimal', presetKey: 'presetMinimal' },
-]
+  mode: UnrestrictedModeState | undefined
+  /** Localized label for the four shipped presets; the preset's own name otherwise. */
+  label: string
+}
+
+/** Shipped presets keep their localized labels and their display order. */
+const KNOWN_LABELS: Readonly<Record<string, UnrestrictedLocaleKey>> = {
+  standard: 'modeStandard',
+  ptc: 'modePtc',
+  cordis: 'modeCordis',
+  minimal: 'modeMinimal',
+}
+
+/** Shipped order, so a roster read never reshuffles the four familiar rows. */
+const KNOWN_ORDER = ['standard', 'ptc', 'cordis', 'minimal']
 
 /** Known host issue strings mapped to localized dictionary keys. */
 const ISSUE_LOCALE_KEYS: Readonly<Record<string, UnrestrictedLocaleKey>> = {
@@ -49,9 +58,9 @@ function stateKey(mode: UnrestrictedModeState | undefined): UnrestrictedLocaleKe
 }
 
 /**
- * Render the unrestricted card.
+ * Render the unrestricted settings page.
  * @param props - locale copy, the card snapshot, and its actions.
- * @returns the card.
+ * @returns the section body.
  */
 export function UnrestrictedCard(props: UnrestrictedCardProps) {
   const { t, loadPreview } = props
@@ -68,8 +77,17 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
     }
   }, [openPreview, openEntry, loadPreview])
 
-  const hasFailedMode = status !== null
-    && Object.values(status.modes).some(mode => mode.state === 'failed')
+  const modes = status?.modes ?? {}
+  const knownRows: ModeRow[] = KNOWN_ORDER
+    .filter(id => modes[id] !== undefined)
+    .map(id => ({ id, mode: modes[id], label: t(KNOWN_LABELS[id] as UnrestrictedLocaleKey) }))
+  const customRows: ModeRow[] = Object.keys(modes)
+    .filter(id => !KNOWN_ORDER.includes(id))
+    .sort()
+    .map(id => ({ id, mode: modes[id], label: modes[id]?.name ?? id }))
+  const rows = [...knownRows, ...customRows]
+
+  const hasFailedMode = Object.values(modes).some(mode => mode.state === 'failed')
   const summaryKey: UnrestrictedLocaleKey = view.settingsStatus === 'loading'
     ? 'summaryLoading'
     : view.settingsStatus === 'unavailable'
@@ -103,13 +121,11 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   }
 
   return (
-    <details open className="dsh-unrestricted-card">
-      <summary className="dsh-unrestricted-summary">
-        <span className="dsh-unrestricted-summaryText">
-          <span className="dsh-unrestricted-title" role="heading" aria-level={3}>{t('title')}</span>
-          <span className="dsh-unrestricted-summaryStatus" data-state={summaryState}>{t(summaryKey)}</span>
-        </span>
-      </summary>
+    <div className="dsh-unrestricted-card">
+      <div className="dsh-unrestricted-head">
+        <h3 className="dsh-unrestricted-title">{t('title')}</h3>
+        <span className="dsh-unrestricted-summaryStatus" data-state={summaryState}>{t(summaryKey)}</span>
+      </div>
       <div className="dsh-unrestricted-content">
         <p className="dsh-unrestricted-description">{t('description')}</p>
         <label className="dsh-unrestricted-toggle">
@@ -121,6 +137,9 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
           />
           <span>{t('toggle')}</span>
         </label>
+        {view.settingsStatus === 'loading' && (
+          <p className="dsh-unrestricted-note">{t('settingsLoading')}</p>
+        )}
         {view.settingsStatus === 'unavailable' && (
           <p className="dsh-unrestricted-note">{t('settingsUnavailable')}</p>
         )}
@@ -129,16 +148,18 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
         )}
         <h4 className="dsh-unrestricted-statusTitle">{t('statusTitle')}</h4>
         <ul className="dsh-unrestricted-modes">
-          {MODE_ROWS.map((row) => {
-            const mode = status?.modes[row.id]
+          {rows.map((row) => {
             const entry = view.previews[row.id]
             const isOpen = openPreview === row.id
             return (
               <li key={row.id} className="dsh-unrestricted-mode">
-                <span className="dsh-unrestricted-dot" data-state={mode?.state ?? 'off'} />
-                <span className="dsh-unrestricted-modeName">{t(row.labelKey)}</span>
-                <span className="dsh-unrestricted-modeState">{t(stateKey(mode))}</span>
-                <code className="dsh-unrestricted-presetId">{t(row.presetKey)}</code>
+                <span className="dsh-unrestricted-dot" data-state={row.mode?.state ?? 'off'} />
+                <span className="dsh-unrestricted-modeName">{row.label}</span>
+                <span className="dsh-unrestricted-modeState">{t(stateKey(row.mode))}</span>
+                <code className="dsh-unrestricted-presetId" title={t('modeIdLabel')}>{row.id}</code>
+                {row.mode?.broken !== undefined && (
+                  <span className="dsh-unrestricted-issues">{row.mode.broken}</span>
+                )}
                 <button
                   type="button"
                   className="dsh-unrestricted-inlineAction"
@@ -146,8 +167,8 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
                 >
                   {t(isOpen ? 'hidePreview' : 'showPreview')}
                 </button>
-                {mode !== undefined && mode.issues.length > 0 && (
-                  <span className="dsh-unrestricted-issues">{formatIssues(mode.issues)}</span>
+                {row.mode !== undefined && row.mode.issues.length > 0 && (
+                  <span className="dsh-unrestricted-issues">{formatIssues(row.mode.issues)}</span>
                 )}
                 {isOpen && (
                   <div className="dsh-unrestricted-preview">
@@ -190,6 +211,6 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
           <button type="button" disabled={view.busy} onClick={() => { void props.refresh() }}>{t('refresh')}</button>
         </div>
       </div>
-    </details>
+    </div>
   )
 }

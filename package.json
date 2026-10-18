@@ -1,11 +1,11 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "engines": {
     "dsh": ">=0.2.0-rc.2 <0.2.2-0"
   },
   "private": true,
-  "description": "Toggleable unrestricted mode for DeepSeek Harness: fuses execution rules into the active standard, ptc, cordis, minimal, and subagent prompts",
+  "description": "Toggleable unrestricted mode for DeepSeek Harness: fuses execution rules into the active standard, ptc, cordis, minimal, and any other registered agent preset (including adg), with a settings section and a composer toggle",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -45,7 +45,7 @@
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-settings",
-        "@deepseek-ai/dsh-client-ui-plugin-manager"
+        "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
   },

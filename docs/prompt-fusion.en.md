@@ -64,6 +64,10 @@ DSH provides distinct execution modes with differing prompt structures and tool 
 - **Profile**: Minimal terminal assistant with an isolated scope registration.
 - **Coordination**: Uses an agent-scoped shadow override to supply the fused minimal persona, seamlessly releasing it upon deactivation.
 
+### Any Other Preset (Adg multi-agent mode and future additions)
+- **Profile**: DSH lets users register presets with arbitrary ids, each supplying its own persona (e.g. `adg` ships a Chinese dispatcher persona) plus optional `plan:policy` and `tools:ptc-only` sections.
+- **Coordination**: The preset roster is enumerated at runtime via `agentPresets.list()`, so **new presets need no plugin update**. Non-built-in presets go through generic fusion: a one-line pointer is appended after a non-empty persona (its original text untouched), notes are added to `plan:policy` / `tools:ptc-only` when present, then the unrestrict block is inserted. If the preset has no persona section, the block goes in first.
+
 ### Subagents & Structured Output
 - **Subagents**: Background child agents inherit the unrestrict rules of their parent mode.
 - **Structured Output**: Subagents reporting via `structured_output` are instructed to supply comprehensive, unconstrained data in each JSON field.
@@ -72,11 +76,14 @@ DSH provides distinct execution modes with differing prompt structures and tool 
 
 ## 4. Robustness & Safety Guardrails
 
-### Anchor Verification
-To ensure compatibility with upstream DSH updates, the plugin checks verbatim text anchors before every fusion (defined in `ANCHORS` in `src/rules.js`):
-- Verifies identity strings, persona openings, Plan Mode policies, and `run_code` descriptions.
-- If all anchors match, rules are cleanly fused.
-- If an anchor fails, the plugin **gracefully falls back to the original stock prompt** for that mode and surfaces the issue in the UI.
+### Section-Name Anchoring
+Injection points are located by **section name** (`deployment:persona-prefix`, `harness:identity`, `plan:policy`, `tools:ptc-only`, …) rather than by fixed whole-prompt text, so upstream rewording usually does not break fusion:
+
+- **The four built-in presets** (Standard / PTC / Cordis / Minimal) keep exact anchor verification (defined in `ANCHORS` in `src/rules.js`): identity strings, persona openings, Plan Mode policies, and `run_code` descriptions must match before anything is fused.
+- **Any other preset** uses soft anchors: a non-empty persona is enough to receive the pointer, so presets with custom personas work out of the box.
+- If a built-in preset's anchors fail, the plugin **gracefully falls back to the original stock prompt** for that mode and surfaces the issue in the settings panel.
+
+> **Known blind spot**: if a preset declares its persona with `complete: true`, the harness replaces that section wholesale *after* the waterfall, discarding the fusion. The plugin only shadows the built-in Minimal preset today; other complete-type presets need a plugin update.
 
 ### Rule Fingerprint
 Computes a SHA-256 hash (first 16 hex characters) of the unrestrict text block, displayed on the settings card for instantaneous verification of the active revision.

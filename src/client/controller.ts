@@ -21,6 +21,12 @@ export interface UnrestrictedSettings {
 export interface UnrestrictedModeState {
   state: 'off' | 'checking' | 'active' | 'failed'
   issues: string[]
+  /** Display name declared by the preset itself (absent for the four shipped ids). */
+  name?: string
+  /** Whether this build ships an exact-anchor rule for the preset id. */
+  known?: boolean
+  /** Why the preset failed to activate in this profile, when it did. */
+  broken?: string
 }
 
 /** Host status endpoint payload. */
@@ -88,6 +94,8 @@ export interface UnrestrictedCardInjected {
   }
   /** Persist the toggle. */
   setEnabled: (enabled: boolean) => Promise<void>
+  /** Flip the persisted toggle (the composer dock button). */
+  toggle: () => Promise<void>
   /** Re-run the host-side anchor checks and refresh. */
   recheck: () => Promise<void>
   /** Re-read host status and invalidate cached previews. */
@@ -242,6 +250,7 @@ export function createUnrestrictedController(ctx: Context) {
     face: (): UnrestrictedCardInjected => ({
       hooks: { view },
       setEnabled,
+      toggle: () => setEnabled(!snapshot.enabled),
       recheck,
       refresh: () => refresh(true),
       loadPreview,

@@ -85,15 +85,18 @@ The plugin coordinates rules across all DSH execution presets:
 - **PTC Mode (Code-Only Execution)**: Since PTC agents interact only via `run_code`, an additional guideline is injected into `tools:ptc-only`, clarifying that Python/Node scripts executed inside `run_code` are unconstrained and free to use internal SDK tools for automated analysis.
 - **Plan Mode**: Decouples operational constraints from planning depth. The plugin explicitly reinforces that **operational constraints apply only to mutations** (no file edits prior to approval), but **the plan markdown must contain unabridged technical procedures, exploit mechanisms, or reverse engineering steps**.
 - **Minimal Mode**: Uses an agent-scoped shadow override to supply the fused minimal persona, cleanly releasing it upon deactivation.
+- **Any Other Preset (Adg multi-agent mode and future additions)**: The preset roster is enumerated at runtime via `agentPresets.list()`, so no plugin update is needed. Presets outside the four built-ins go through generic fusion: the persona is left untouched and gains a one-line pointer, notes are appended to `plan:policy` / `tools:ptc-only` when those sections exist, and the unrestrict block is inserted afterwards. **New presets such as `adg` therefore work without touching the plugin**, and the settings panel grows a row automatically.
 - **Subagents & Structured Output**: Background child agents and structured reporting (`structured_output`) automatically inherit the unrestrict rules.
 
-### Anchor Text Verification & Safe Fallback
+### Section-Name Anchoring & Safe Fallback
 
-To prevent malformed prompts when DSH updates upstream, the plugin checks verbatim text anchors before every fusion (defined in `ANCHORS` in `src/rules.js`):
+Injection points are located by section name rather than fixed whole-prompt text, so upstream rewording usually does not break fusion:
 
-- Verifies persona openings, Plan Mode policies, and `run_code` descriptions.
-- Edits are applied only if all anchors match.
-- If an anchor fails, the plugin **safely falls back to the stock DSH prompt** for that mode and flags the issue in the settings card.
+- **The four built-in presets** (Standard / PTC / Cordis / Minimal) keep exact anchor verification (defined in `ANCHORS` in `src/rules.js`): identity strings, persona openings, Plan Mode policies, and `run_code` descriptions must match before anything is fused.
+- **Any other preset** uses soft anchors: a non-empty persona is enough to receive the pointer, so presets with custom personas work out of the box.
+- If a built-in preset's anchors fail, the plugin **gracefully falls back to the original stock prompt** for that mode and surfaces the issue in the settings panel.
+
+> **Known blind spot**: if a preset declares its persona with `complete: true`, the harness replaces that section wholesale *after* the waterfall, discarding the fusion. The plugin only shadows the built-in Minimal preset today; other complete-type presets need a plugin update.
 
 ### Hot-Switching & Zero-Trace Reversion
 
@@ -187,14 +190,15 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 > **Important: Both switches must be turned on for unrestrict rules to take effect!**
 >
 > 1. **Step 1 (Plugin Activation Switch)**: Navigate to **Plugins** in the sidebar. In the installed plugins list, find `dsh-unrestricted` (Unrestricted mode) and **toggle the plugin ON**. If the plugin is not enabled here, DSH will not load the plugin runtime at all.
-> 2. **Step 2 (Feature Toggle Switch)**: Click `dsh-unrestricted` in the **Plugins** page to open its configuration card, and turn on the **"Enable unrestricted mode"** switch at the top.
+> 2. **Step 2 (Feature Toggle Switch)**: Two equivalent ways — pick either. ① Open **Settings** → **Unrestricted mode** in the left nav and check **"Enable unrestricted mode"** at the top; ② or simply click the **"Unrestricted"** button that sits right below the chat composer in any session (it lights up when active).
 >
 > Both switches must be active for rules to be injected into the system prompt assembly pipeline.
 
 ### Settings Panel Features
 
 - **Enable Switch**: Toggles unrestrict mode globally for future requests.
-- **Per-Mode Status**: Shows real-time injection status across Standard, PTC, Cordis, and Minimal modes (`Active` indicates successful anchor verification and injection; if inactive, check whether the plugin is toggled on in the Plugins manager).
+- **Composer Toggle**: A persistent **"Unrestricted"** button below the chat input shows the current state (`on` / `off`); clicking it flips the same switch the settings panel uses.
+- **Per-Mode Status**: Shows real-time injection status for every preset — the four built-ins (Standard, PTC, Cordis, Minimal) plus any other preset enumerated at runtime (for example Adg multi-agent mode). `Active` indicates successful anchor verification and injection; if inactive, check whether the plugin is toggled on in the Plugins manager.
 - **Rule Fingerprint**: Displays the SHA-256 hash (first 16 hex characters) of the deployed unrestrict rule block.
 - **Prompt Preview**: Click **"Show preview"** under any mode to inspect the exact system prompt text, line count, and byte size.
 

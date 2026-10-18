@@ -30,12 +30,36 @@
  * $DSH_HOME/profiles/web/cordis.patch.yml). Switching affects the NEXT assembly of any live
  * or future agent — never an in-flight request or a logged session event.
  */
-import z from '@deepseek-ai/schemastery'
-import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
-import { createScope } from '@deepseek-ai/dsh-scope'
+import { loadHost, readEnabled } from './host.js'
 import {
-  ANCHORS, PRESETS, PRESET_RULES, contractFingerprint, fuseSections, fusedMinimalPrompt, renderPreview,
+  ANCHORS, PRESETS, contractFingerprint, fuseSections, fusedMinimalPrompt, isKnownPreset, renderPreview,
 } from './rules.js'
+
+// Host packages are resolved through the running DSH entry, never through this
+// bundle's own `node_modules` (a `link:` install has none). See ./host.js.
+const z = loadHost('@deepseek-ai/schemastery')
+const systemPromptModule = loadHost('@deepseek-ai/dsh-system-prompt')
+const scopeModule = loadHost('@deepseek-ai/dsh-scope')
+
+/**
+ * Fallback renderer used only when `@deepseek-ai/dsh-system-prompt` cannot be
+ * resolved: joins sections and substitutes the variables that do have values,
+ * leaving the rest as literal `{{name}}`. Previews degrade; nothing else does.
+ */
+function fallbackRender(assembly) {
+  return (assembly.sections ?? [])
+    .map((section) => {
+      if (section.interpolate === false) return section.text
+      return String(section.text).replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (whole, name) => {
+        const value = assembly.variables?.[name]
+        return typeof value === 'string' ? value : whole
+      })
+    })
+    .filter((text) => text.length > 0)
+    .join('\n\n')
+}
+
+const renderPrompt = systemPromptModule?.renderPrompt ?? fallbackRender
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'dsh-unrestricted'
@@ -45,9 +69,13 @@ export const inject = ['settings', 'systemPrompt', 'loader']
 
 const RPC_CHANNEL = '/dsh-unrestricted'
 
-export const Config = z.object({
-  enabled: z.boolean().default(false),
-}).default({ enabled: false }).volatile()
+/**
+ * The volatile `enabled` flag. Built only when schemastery resolves: without it
+ * the plugin still runs, but the Settings form and live toggling are absent.
+ */
+export const Config = typeof z?.object === 'function'
+  ? z.object({ enabled: z.boolean().default(false) }).default({ enabled: false }).volatile()
+  : undefined
 
 /** Human-readable error text for status and RPC error branches. */
 function messageOf(error) {
@@ -67,7 +95,7 @@ export function apply(ctx, config) {
   ctx.effect(() => ctx.settings.configure({ auto: false }, ctx.fiber))
 
   const state = {
-    enabled: config.get().enabled,
+    enabled: readEnabled(config),
     /** presetId -> issue strings; a preset with an empty list is verified. */
     startup: new Map(),
     /** presetId -> in-flight startup check. */
@@ -107,6 +135,11 @@ export function apply(ctx, config) {
         await lease[Symbol.asyncDispose]()
       }
     }
+    const createScope = scopeModule?.createScope
+    if (typeof createScope !== 'function') {
+      // No scope primitive available: probe the standing global assembly.
+      return await ctx.systemPrompt.assemble({})
+    }
     const key = {}
     const scope = createScope(ctx, key)
     try {
@@ -115,6 +148,39 @@ export function apply(ctx, config) {
     } finally {
       await scope.dispose()
     }
+  }
+
+  /**
+   * Enumerate every preset this profile can run, so the card and the checks
+   * cover presets added after this build (a user-authored `adg`, or any future
+   * preset) instead of the four ids compiled into {@link PRESETS}.
+   * @returns rows of `{ id, name, known }`, the shipped ids first.
+   */
+  async function presetRoster() {
+    const rows = new Map()
+    for (const id of PRESETS) rows.set(id, { id, name: undefined, known: true })
+    const presets = ctx.get('agentPresets')
+    if (presets !== undefined && typeof presets.list === 'function') {
+      try {
+        await ctx.loader.await()
+        for (const preset of await presets.list()) {
+          rows.set(preset.id, {
+            id: preset.id,
+            name: preset.name ?? preset.description,
+            known: isKnownPreset(preset.id),
+            broken: preset.broken,
+          })
+        }
+      } catch {
+        // A roster read is a convenience; the shipped ids still fuse.
+      }
+    }
+    return [...rows.values()]
+  }
+
+  /** All preset ids currently in the roster (shipped ids always included). */
+  async function presetIds() {
+    return (await presetRoster()).map(row => row.id)
   }
 
   /**
@@ -154,14 +220,17 @@ export function apply(ctx, config) {
     return pending
   }
 
-  /** Check every preset once (status surface and the `recheck` endpoint). */
-  function ensureChecks() {
-    return Promise.all(PRESETS.map(presetId => ensureCheck(presetId)))
+  /** Check every preset in the roster once (status surface and `recheck`). */
+  async function ensureChecks() {
+    await Promise.all((await presetIds()).map(presetId => ensureCheck(presetId)))
   }
 
-  /** Whether one preset may currently be fused. */
+  /**
+   * Whether one preset may currently be fused. Every preset id is fusible —
+   * unknown ids use the generic rule — so this only reports a failed check.
+   */
   function usable(presetId) {
-    return PRESETS.includes(presetId) && modeIssues(presetId).length === 0
+    return state.startup.has(presetId) && modeIssues(presetId).length === 0
   }
 
   /**
@@ -256,18 +325,21 @@ export function apply(ctx, config) {
     state.fusedText.clear()
   }
 
-  /** Current card view: toggle and per-preset state. */
-  function statusPayload() {
+  /** Current card view: toggle and per-preset state (roster-driven). */
+  async function statusPayload() {
     const modes = {}
-    for (const presetId of PRESETS) {
-      const issues = modeIssues(presetId)
-      modes[presetId] = {
+    for (const row of await presetRoster()) {
+      const issues = modeIssues(row.id)
+      modes[row.id] = {
         state: !state.enabled
           ? 'off'
-          : !state.startup.has(presetId)
+          : !state.startup.has(row.id)
             ? 'checking'
             : issues.length > 0 ? 'failed' : 'active',
         issues,
+        name: row.name,
+        known: row.known,
+        broken: row.broken,
       }
     }
     return { enabled: state.enabled, contract: contractFingerprint(), modes }
@@ -316,8 +388,8 @@ export function apply(ctx, config) {
    */
   async function previewFor(presetId) {
     const contract = contractFingerprint()
-    if (!PRESETS.includes(presetId)) {
-      return { presetId, contract, available: false, reason: `unknown preset "${presetId}"` }
+    if (typeof presetId !== 'string' || presetId === '') {
+      return { presetId, contract, available: false, reason: 'missing preset id' }
     }
     // Best source first: the exact bytes a top-level live agent just received.
     // Only when no top-level agent has assembled this preset yet does the
@@ -348,7 +420,7 @@ export function apply(ctx, config) {
     switch (endpoint) {
       case 'status': {
         if (state.enabled) await ensureChecks()
-        return ok(statusPayload())
+        return ok(await statusPayload())
       }
       case 'preview': {
         // Private channels forward the client payload verbatim; accept the
@@ -364,7 +436,7 @@ export function apply(ctx, config) {
         state.fusedText.clear()
         await ensureChecks()
         if (state.enabled) sweepAgents()
-        return ok(statusPayload())
+        return ok(await statusPayload())
       }
       default:
         return { ok: false, error: { code: 'internal', message: `dsh-unrestricted: unknown endpoint ${JSON.stringify(endpoint)}`, details: {} } }
@@ -377,7 +449,7 @@ export function apply(ctx, config) {
     const agent = context.agent
     if (agent === undefined) return original
     const presetId = resolveAgentPreset(agent, original.sections)
-    if (presetId === undefined || !PRESET_RULES[presetId]) {
+    if (presetId === undefined) {
       unshadowMinimal(agent)
       return original
     }
@@ -444,7 +516,7 @@ export function apply(ctx, config) {
 
   ctx.effect(() => {
     const unwatch = ctx.on('loader/volatile-update', () => {
-      const enabled = config.get().enabled
+      const enabled = readEnabled(config)
       if (enabled === state.enabled) return
       state.enabled = enabled
       if (enabled) onEnable()

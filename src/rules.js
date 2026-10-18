@@ -23,7 +23,11 @@ export const ANCHORS = {
   structuredOutputFull: 'When you have your final answer, you MUST report it by calling the `structured_output` tool with arguments matching its parameter schema exactly. Do not finish with a plain text answer: only the tool call counts as your result.',
 }
 
-/** Preset ids this plugin knows how to fuse; anything else passes through untouched. */
+/**
+ * Preset ids this plugin ships knowledge about. They are no longer the limit of
+ * what can be fused: every other preset id (a user-authored preset such as
+ * `adg`, or a preset added after this build) resolves to {@link GENERIC_RULE}.
+ */
 export const PRESETS = ['standard', 'ptc', 'cordis', 'minimal']
 
 /** Per-preset fusion shape: which persona anchors and which in-place notes apply. */
@@ -33,6 +37,29 @@ export const PRESET_RULES = {
   cordis: { persona: 'personaStandard', plan: true, ptcOnly: false, identity: true },
   // minimal's complete persona replaces the whole prompt, so no identity line exists.
   minimal: { persona: 'personaMinimal', plan: false, ptcOnly: false, identity: false },
+}
+
+/**
+ * Fusion shape for any preset this build does not know by name. `'auto'` means
+ * "fuse whatever section is present and leave the rest alone": a custom persona
+ * gets the pointer appended (its exact wording is the preset author's business,
+ * not an anchor this plugin may fail on), and the plan / PTC-only /
+ * structured-output notes apply only when their section actually exists.
+ */
+export const GENERIC_RULE = { persona: 'auto', plan: 'auto', ptcOnly: 'auto', identity: false }
+
+/**
+ * Resolve the fusion shape for one preset id.
+ * @param presetId - composed preset id, known or not.
+ * @returns the preset's rule, or {@link GENERIC_RULE} for any other id.
+ */
+export function rulesFor(presetId) {
+  return PRESET_RULES[presetId] ?? GENERIC_RULE
+}
+
+/** Whether a preset id is one this build ships an exact-anchor rule for. */
+export function isKnownPreset(presetId) {
+  return PRESET_RULES[presetId] !== undefined
 }
 
 /** Section the fusion adds; sits directly behind the persona, ahead of plan and tool guidance. */
@@ -129,13 +156,13 @@ export function contractFingerprint() {
 
 /** The exact bytes this plugin appends for one preset (used by preview and checks). */
 export function contractAdditions(presetId) {
-  const rules = PRESET_RULES[presetId]
+  const rules = rulesFor(presetId)
   if (rules === undefined) return undefined
   return {
     pointer: PERSONA_POINTER,
     block: EXECUTION_MODE_BLOCK,
-    planNote: rules.plan ? PLAN_NOTE : '',
-    ptcNote: rules.ptcOnly ? PTC_ONLY_NOTE : '',
+    planNote: rules.plan === true || rules.plan === 'auto' ? PLAN_NOTE : '',
+    ptcNote: rules.ptcOnly === true || rules.ptcOnly === 'auto' ? PTC_ONLY_NOTE : '',
     structuredNote: STRUCTURED_OUTPUT_NOTE,
   }
 }
@@ -175,15 +202,23 @@ const ISSUE_LABELS = {
 
 /**
  * Verify anchors and fuse the execution mode into one assembly's sections.
+ *
+ * Known presets (`standard`, `ptc`, `cordis`, `minimal`) keep their exact-anchor
+ * contract: a changed anchor yields an issue and the caller delivers the
+ * original prompt untouched. Every other preset id is fused generically — the
+ * pointer is appended to whatever persona it declares and each boundary note is
+ * appended only where its section actually exists, so a preset authored after
+ * this build (`adg`, or a user's own) is supported without a code change.
+ *
  * @param sections - AssembledSection-shaped rows ({ name, text }) from the waterfall.
- * @param presetId - the composed preset id (must be one of PRESETS).
+ * @param presetId - the composed preset id (known or generic).
  * @param options.isSubagent - tolerate a non-anchor persona (delegated personas shadow it).
  * @returns `{ sections }` with the fusion applied, or `{ issues }` when an anchor
  *   fails — callers must then deliver the original assembly unchanged.
  */
 export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
-  const rules = PRESET_RULES[presetId]
-  if (rules === undefined) return { issues: [`unknown preset "${presetId}"`] }
+  const rules = rulesFor(presetId)
+  const generic = rules === GENERIC_RULE
   const issues = []
   const byName = new Map(sections.map(section => [section.name, section]))
 
@@ -193,29 +228,39 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
   }
 
   const persona = byName.get('deployment:persona-prefix')
-  const personaAnchor = ANCHORS[rules.persona]
   let fusedPersona = undefined
-  if (persona !== undefined && persona.text === personaAnchor) {
-    fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
-  } else if (isSubagent && persona !== undefined && persona.text.trim() !== '') {
-    fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
-  } else if (!isSubagent) {
+  if (persona !== undefined && persona.text.trim() !== '') {
+    if (rules.persona === 'auto') {
+      // Generic: the preset author owns the persona wording; the pointer is additive.
+      fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
+    } else if (persona.text === ANCHORS[rules.persona]) {
+      fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
+    } else if (isSubagent) {
+      fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
+    } else {
+      issues.push(ISSUE_LABELS.persona)
+    }
+  } else if (rules.persona !== 'auto' && !isSubagent) {
     issues.push(ISSUE_LABELS.persona)
   }
 
   let fusedPlan = undefined
   const plan = byName.get('plan:policy')
-  if (rules.plan && plan !== undefined && plan.text.trim() !== '') {
-    if (plan.text.startsWith(ANCHORS.planPrefix)) {
+  if (plan !== undefined && plan.text.trim() !== '') {
+    if (rules.plan === 'auto' || plan.text.startsWith(ANCHORS.planPrefix)) {
       fusedPlan = { ...plan, text: plan.text + PLAN_NOTE }
-    } else {
+    } else if (rules.plan) {
       issues.push(ISSUE_LABELS.plan)
     }
   }
 
   let fusedPtcOnly = undefined
   const ptcOnly = byName.get('tools:ptc-only')
-  if (rules.ptcOnly) {
+  if (rules.ptcOnly === 'auto') {
+    if (ptcOnly !== undefined && ptcOnly.text.trim() !== '') {
+      fusedPtcOnly = { ...ptcOnly, text: ptcOnly.text + PTC_ONLY_NOTE }
+    }
+  } else if (rules.ptcOnly) {
     if (ptcOnly !== undefined && ptcOnly.text === ANCHORS.ptcOnly) {
       fusedPtcOnly = { ...ptcOnly, text: ptcOnly.text + PTC_ONLY_NOTE }
     } else {
@@ -228,7 +273,7 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
   if (structured !== undefined && structured.text.trim() !== '') {
     if (structured.text.startsWith(ANCHORS.structuredOutputPrefix)) {
       fusedStructured = { ...structured, text: structured.text + STRUCTURED_OUTPUT_NOTE }
-    } else {
+    } else if (!generic) {
       issues.push(ISSUE_LABELS.structuredOutput)
     }
   }
