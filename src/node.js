@@ -82,37 +82,19 @@ async function readJsonFile(filePath) {
   }
 }
 
-/** Detect the pnpm storeDir recorded in a profile's node_modules/.modules.yaml. */
-async function detectProfileStoreDir(profileDir) {
-  const modulesYamlPath = path.join(profileDir, 'node_modules', '.modules.yaml')
-  try {
-    const raw = await fs.readFile(modulesYamlPath, 'utf8')
-    try {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed?.storeDir === 'string' && parsed.storeDir.trim() !== '') {
-        return parsed.storeDir.trim()
-      }
-    } catch {
-      const match = raw.match(/^\s*"?storeDir"?\s*:\s*"?([^"\r\n]+)"?/m)
-      if (match?.[1]) return match[1].trim()
-    }
-  } catch {
-    // No .modules.yaml yet; let pnpm pick its default store.
-  }
-  return undefined
-}
-
 /** Run pnpm inside a profile directory using Desktop's bundled runtime or system pnpm. */
-async function runPnpm(profileDir, args, packageManager) {
+function runPnpm(profileDir, args, packageManager) {
   const command = packageManager?.command ?? (process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm')
-  const storeDir = await detectProfileStoreDir(profileDir)
-  const storeArgs = storeDir !== undefined ? ['--store-dir', storeDir] : []
-  const fullArgs = [...(packageManager?.argsPrefix ?? []), '--dir', profileDir, ...storeArgs, ...args]
-  const env = {
-    ...process.env,
-    ...(packageManager?.env ?? {}),
-    ...(storeDir !== undefined ? { npm_config_store_dir: storeDir } : {}),
-  }
+  const fullArgs = [
+    ...(packageManager?.argsPrefix ?? []),
+    '--dir',
+    profileDir,
+    '--config.confirmModulesPurge=false',
+    ...args,
+  ]
+  const env = packageManager?.env !== undefined
+    ? { ...process.env, ...packageManager.env }
+    : process.env
   const useShell = packageManager?.command === undefined && process.platform === 'win32'
   return new Promise((resolve, reject) => {
     execFile(
