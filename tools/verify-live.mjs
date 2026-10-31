@@ -244,7 +244,6 @@ if (bootEnabled) {
 }
 
 try {
-  console.log(`contract fingerprint ${rules.contractFingerprint()}`)
   console.log('baseline (plugin installed, toggle off)')
   const baseline = {}
   for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {

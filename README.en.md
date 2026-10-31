@@ -14,7 +14,7 @@ A single toggle enables or disables the rules without altering DSH's UI layout, 
 - [How It Works](#how-it-works)
   - [System Prompt Injection](#system-prompt-injection)
   - [Mode Adaptation](#mode-adaptation)
-  - [Anchor Check & Fallback](#anchor-check--fallback)
+  - [Structural Fusion & Fallback](#structural-fusion--fallback)
   - [Instant Toggle](#instant-toggle)
 - [Installation & Updates](#installation--updates)
   - [Local Source Install](#local-source-install)
@@ -80,9 +80,9 @@ The plugin handles each DSH execution preset according to its prompt structure:
 - **Minimal Mode**: Injects rules within the active agent scope while preserving custom subagent personas and `structured_output` instructions.
 - **Subagents**: Background subagents and structured output tasks inherit the current toggle state.
 
-### Anchor Check & Fallback
+### Structural Fusion & Fallback
 
-Before each assembly, the plugin checks expected anchor strings in the stock prompt (see `ANCHORS` in `src/rules.js`), including persona openings, Plan Mode policies, and `run_code` descriptions. If an upstream DSH update changes those strings and a check fails, that mode falls back to the stock prompt and reports the failed anchor in the settings panel.
+The plugin fuses sections structurally by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both the latest DSH Web (`0.2.2-alpha.2`) and DSH Desktop (`0.2.1-rc.5`) without brittle exact-string hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
 
 ### Instant Toggle
 
@@ -93,23 +93,25 @@ The toggle state is saved in the profile's `cordis.patch.yml` and takes effect o
 ## Installation & Updates
 
 ```sh
-# Install a specific release
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.5
+# Install on DSH Web
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 
-# Or track master
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted
+# Install on DSH Desktop
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.6
 ```
 
-Restart `dsh web` after installing, then follow [Usage](#usage) to enable it.
+Restart `dsh web` or DSH Desktop after installing, then follow [Usage](#usage) to enable it.
 
 #### Update
 
+You can check and install updates directly from the **Version & Updates** card inside **Plugins → dsh-unrestricted**, or update via CLI:
+
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#<version>
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 ```
 
-Restart `dsh web`.
+Restart `dsh web` or DSH Desktop.
 
 #### Uninstall
 
@@ -136,9 +138,8 @@ Make sure both switches are turned on after installation:
 
 The settings card also provides:
 
-- **Mode Status**: Shows anchor check and injection status for Standard, PTC, Cordis, and Minimal modes.
-- **Rule Fingerprint**: First 16 hex characters of the rule text's SHA-256 hash.
-- **Prompt Preview**: Expands the full assembled system prompt, line count, and byte size for each mode.
+- **Mode Coverage & Prompt Preview**: Shows active status for Standard, PTC, Cordis, and Minimal modes, with expandable full-prompt preview and one-click copy.
+- **Version & Updates**: Automatically checks GitHub Releases for new versions, displays an update badge in the plugin detail header, and supports one-click self-update.
 
 ---
 

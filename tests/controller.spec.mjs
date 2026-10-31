@@ -3,14 +3,21 @@ import test from 'node:test'
 import { createUnrestrictedController } from '../src/client/controller.ts'
 
 const settle = () => new Promise(setImmediate)
-const status = (contract, enabled = true) => ({ enabled, contract, modes: {} })
+const status = (version, enabled = true) => ({ enabled, version, modes: {} })
 
 /** 保留真实控制器，仅控制设置提交、配置事件和 RPC 的完成时序。 */
 async function fixture() {
   let value = { enabled: true }
   const subscribers = new Set()
   const events = new Map()
-  const pending = { status: [], recheck: [], preview: [], write: [] }
+  const pending = {
+    status: [],
+    recheck: [],
+    preview: [],
+    'check-update': [],
+    'perform-update': [],
+    write: [],
+  }
   function defer(endpoint, payload) {
     return new Promise((resolve, reject) => pending[endpoint].push({ payload, resolve, reject }))
   }
@@ -35,7 +42,7 @@ async function fixture() {
     return request
   }
   const answer = (request, value) => request.resolve({ ok: true, value })
-  answer(take('status'), status('initial'))
+  answer(take('status'), status('0.2.6'))
   await settle()
   return {
     face, take, answer,
@@ -56,7 +63,7 @@ test('刷新或重检后，迟到的旧预览不能覆盖已显示的新正文',
     const previousRequest = f.take('preview')
     assert.equal(f.view().busy, false, '加载预览时界面允许刷新和重检')
     const updating = f.face[action]()
-    f.answer(f.take(action === 'refresh' ? 'status' : 'recheck'), status('updated'))
+    f.answer(f.take(action === 'refresh' ? 'status' : 'recheck'), status('0.2.6'))
     await updating
     assert.equal(f.view().previews.standard, undefined)
 
@@ -75,7 +82,7 @@ test('失效预览的迟到错误不影响新请求，不同预设分别接收�
   const previous = f.face.loadPreview('standard')
   const previousRequest = f.take('preview')
   const updating = f.face.refresh()
-  f.answer(f.take('status'), status('updated'))
+  f.answer(f.take('status'), status('0.2.6'))
   await updating
   const current = f.face.loadPreview('standard')
   const currentRequest = f.take('preview')
@@ -97,13 +104,13 @@ test('配置事件与手动刷新重叠时保留新状态，所有请求结束�
     const older = f.face.refresh()
     const olderRequest = f.take('status')
     f.documentUpdated()
-    f.answer(f.take('status'), status('current'))
+    f.answer(f.take('status'), status('0.2.6'))
     await settle()
     assert.equal(f.view().busy, true)
-    if (outcome === 'success') f.answer(olderRequest, status('obsolete'))
+    if (outcome === 'success') f.answer(olderRequest, status('0.2.5'))
     else olderRequest.reject(new Error('obsolete status failure'))
     await older
-    assert.equal(f.view().status.contract, 'current')
+    assert.equal(f.view().status.version, '0.2.6')
     assert.equal(f.view().message, undefined)
     assert.equal(f.view().busy, false)
   }
@@ -121,14 +128,50 @@ test('开关提交立即使旧预览失效，配置事件刷新不能提前结�
   f.answer(previewRequest, { available: true, text: 'before toggle' })
   await preview
   assert.equal(f.view().previews.standard, undefined)
-  f.answer(f.take('status'), status('event refresh', false))
+  f.answer(f.take('status'), status('0.2.6', false))
   await settle()
   assert.equal(f.view().busy, true, '配置事件的读取结束后，写入仍在等待应答')
   writeRequest.resolve(true)
   await settle()
   assert.equal(f.view().busy, true)
-  f.answer(f.take('status'), status('write refresh', false))
+  f.answer(f.take('status'), status('0.2.6', false))
   await writing
   assert.equal(f.view().busy, false)
   assert.equal(f.view().status.enabled, false)
+})
+
+test('版本检查与手动更新正确推进状态并透传目标版本', async () => {
+  const f = await fixture()
+  assert.equal(f.view().update.state, 'idle')
+
+  const checking = f.face.checkUpdate(true)
+  assert.equal(f.view().update.state, 'checking')
+  const checkReq = f.take('check-update')
+  assert.deepEqual(checkReq.payload, { force: true })
+  f.answer(checkReq, {
+    state: 'available',
+    currentVersion: '0.2.6',
+    latestVersion: '0.2.7',
+    latestTag: 'v0.2.7',
+    installSource: 'github',
+  })
+  await checking
+  assert.equal(f.view().update.state, 'available')
+  assert.equal(f.view().update.latestVersion, '0.2.7')
+
+  const installing = f.face.performUpdate()
+  assert.equal(f.view().update.state, 'updating')
+  const installReq = f.take('perform-update')
+  assert.deepEqual(installReq.payload, { targetTag: 'v0.2.7' })
+  f.answer(installReq, {
+    state: 'updated',
+    currentVersion: '0.2.6',
+    latestVersion: '0.2.7',
+    updatedVersion: '0.2.7',
+    restartRequired: true,
+    installSource: 'github',
+  })
+  await installing
+  assert.equal(f.view().update.state, 'updated')
+  assert.equal(f.view().update.restartRequired, true)
 })

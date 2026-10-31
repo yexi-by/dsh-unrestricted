@@ -14,7 +14,7 @@
 - [仕組み](#仕組み)
   - [システムプロンプト注入](#システムプロンプト注入)
   - [各実行モードへの対応](#各実行モードへの対応)
-  - [アンカー検証とフォールバック](#アンカー検証とフォールバック)
+  - [構造化融合とフォールバック](#構造化融合とフォールバック)
   - [即時切り替え](#即時切り替え)
 - [インストールと更新](#インストールと更新)
   - [ローカルソースインストール](#ローカルソースインストール)
@@ -80,9 +80,9 @@ DSH の各実行モードに合わせてプロンプトセクションを処理�
 - **Minimal モード**：現在のエージェントスコープ内でルールを注入し、サブエージェントのカスタムペルソナと構造化出力（`structured_output`）の指示を保持します。
 - **サブエージェント**：バックグラウンドのサブエージェントと構造化出力タスクも現在のスイッチ状態を引き継ぎます。
 
-### アンカー検証とフォールバック
+### 構造化融合とフォールバック
 
-組み立てのたびに、公式プロンプト内のアンカー文字列（`src/rules.js` の `ANCHORS`：ペルソナ冒頭、Plan モードポリシー、`run_code` の説明文）を照合します。DSH の更新で文面が変わり一致しなかった場合、そのモードは公式プロンプトへフォールバックし、設定画面に未通過項目を表示します。
+DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）に基づいて構造的かつ冪等に融合を行うため、最新の DSH Web（`0.2.2-alpha.2`）および DSH Desktop（`0.2.1-rc.5`）の双方で安定して動作します。ペルソナセクションが存在しない場合は自動的に標準プロンプトへフォールバックします。
 
 ### 即時切り替え
 
@@ -93,23 +93,25 @@ DSH の各実行モードに合わせてプロンプトセクションを処理�
 ## インストールと更新
 
 ```sh
-# 指定バージョンのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.5
+# DSH Web へのインストール
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 
-# または master 最新コードのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted
+# DSH Desktop へのインストール
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.6
 ```
 
-インストール後に `dsh web` を再起動し、下記の[使い方](#使い方)に従って有効化します。
+インストール後に `dsh web` または DSH Desktop を再起動し、下記の[使い方](#使い方)に従って有効化します。
 
 #### 更新
 
+DSH の **「プラグイン → dsh-unrestricted」** 詳細画面にある **「バージョンと更新」** カードからワンクリックで更新を確認・適用できるほか、CLI からも更新できます：
+
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#バージョン番号
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 ```
 
-更新後に `dsh web` を再起動します。
+更新後に `dsh web` または DSH Desktop を再起動します。
 
 #### アンインストール
 
@@ -136,9 +138,8 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 
 設定カードでは以下の項目も確認できます：
 
-- **モード状態**：Standard、PTC、Cordis、Minimal の 4 モードにおけるアンカー照合と注入結果を表示します。
-- **ルールフィンガープリント**：ルールテキストの SHA-256 先頭 16 文字を表示します。
-- **プロンプトプレビュー**：各モードで生成されたシステムプロンプト全文、行数、バイト数を展開表示します。
+- **モード状態とプロンプトプレビュー**：Standard、PTC、Cordis、Minimal の 4 モードの状態表示、完全なシステムプロンプトの展開プレビューおよびワンクリックコピー。
+- **バージョンと更新**：GitHub Releases の新バージョン自動チェック、更新通知バッジ表示、および画面内からの手動アップデート。
 
 ---
 

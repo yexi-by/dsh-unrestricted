@@ -14,7 +14,7 @@
 - [工作原理](#工作原理)
   - [系统提示词注入](#系统提示词注入)
   - [各运行模式适配](#各运行模式适配)
-  - [锚点校验与回退](#锚点校验与回退)
+  - [结构化融合与安全回退](#结构化融合与安全回退)
   - [即时开关](#即时开关)
 - [安装与更新](#安装与更新)
   - [本地源码安装](#本地源码安装)
@@ -80,9 +80,9 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 - **Minimal 模式**：在当前智能体作用域内注入规则，保留子代理原有的自定义角色和结构化输出（`structured_output`）说明。
 - **子代理**：后台子代理与结构化输出任务自动沿用当前开关状态。
 
-### 锚点校验与回退
+### 结构化融合与安全回退
 
-每次组装前，插件会核对官方提示词中的锚点文本（见 `src/rules.js` 的 `ANCHORS`），包括角色设定开头、Plan 模式策略和 `run_code` 说明。如果 DSH 升级后某处文本变动导致匹配失败，对应模式会回退为官方原版提示词，并在设置页标出未通过项，避免拼出损坏的提示词。
+插件按 DSH 官方提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行幂等融合，不依赖脆弱的逐字文案哈希校验，兼容最新 DSH Web（`0.2.2-alpha.2`）与 DSH Desktop（`0.2.1-rc.5`）。如果自定义模式缺少角色设定段落，对应模式会自动保留原版提示词并在设置页友好提示。
 
 ### 即时开关
 
@@ -93,23 +93,25 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 ## 安装与更新
 
 ```sh
-# 安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.5
+# Web 端安装指定版本
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 
-# 或安装 master 最新代码
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted
+# 桌面端安装指定版本（使用桌面端内置 CLI）
+"& '$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd' plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.6"
 ```
 
-安装后重启 `dsh web`，按下方[使用说明](#使用说明)启用。
+安装后重启 `dsh web` 或 DSH 桌面端，按下方[使用说明](#使用说明)启用。
 
 #### 更新
 
+可在 DSH **「插件 → dsh-unrestricted」** 详情页底部的 **「版本与更新」** 卡片中点击 **「检查更新」** 与 **「立即更新」** 一键完成更新，或通过命令行手动更新：
+
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#目标版本号
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
 ```
 
-更新后重启 `dsh web`。
+更新后重启 `dsh web` 或 DSH 桌面端。
 
 #### 卸载
 
@@ -136,9 +138,8 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 
 设置卡片中同时提供：
 
-- **模式状态**：显示 Standard、PTC、Cordis、Minimal 四种模式的锚点校验与注入结果。
-- **规则指纹**：当前规则文本的 SHA-256 前 16 位，用于核对版本。
-- **提示词预览**：展开查看各模式最终生成的完整系统提示词、行数与字节数。
+- **模式覆盖与提示词预览**：显示 Standard、PTC、Cordis、Minimal 四种模式的生效状态，支持展开查看或一键复制各模式最终生成的完整系统提示词。
+- **版本与更新**：打开插件详情页时自动检测 GitHub 最新版本并在标题栏显示「可更新」提醒徽标，支持在页面内一键更新。
 
 ---
 

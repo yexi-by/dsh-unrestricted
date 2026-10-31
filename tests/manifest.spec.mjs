@@ -4,7 +4,7 @@ import { test } from 'node:test'
 
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
 
-test('declares the current master client renderer and settings dependencies', () => {
+test('declares the current client renderer, settings dependencies, and Web + Desktop engine range', () => {
   assert.deepEqual(manifest.dsh.client.inject, [
     '@deepseek-ai/dsh-client-connection',
     '@deepseek-ai/dsh-client-locale',
@@ -15,4 +15,5 @@ test('declares the current master client renderer and settings dependencies', ()
   ])
   assert.equal(manifest.dsh.client.platform, 'web')
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')
+  assert.equal(manifest.engines.dsh, '>=0.2.0-rc.2 <0.2.3-0')
 })

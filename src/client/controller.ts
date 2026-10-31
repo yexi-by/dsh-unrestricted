@@ -1,9 +1,7 @@
 /**
  * Browser-half controller for the unrestricted card: binds the `unrestricted`
- * settings namespace (the toggle) and polls the host half's private RPC for
- * per-preset fusion state. Mirrors the card-controller pattern: the apply
- * closure owns the controller, the slot inject face hands hooks and callbacks
- * to the component.
+ * settings namespace (the toggle), reads per-preset fusion state and previews,
+ * and manages version checks and self-updates via the host half's private RPC.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
@@ -19,22 +17,39 @@ export interface UnrestrictedSettings {
 
 /** Per-preset fusion state reported by the host half. */
 export interface UnrestrictedModeState {
-  state: 'off' | 'checking' | 'active' | 'failed'
+  state: 'off' | 'active' | 'failed'
   issues: string[]
+}
+
+/** Version and update status reported by the host half. */
+export interface UnrestrictedUpdateInfo {
+  state: 'idle' | 'checking' | 'up-to-date' | 'available' | 'updating' | 'updated' | 'failed'
+  currentVersion: string
+  latestVersion?: string
+  latestTag?: string
+  updatedVersion?: string
+  releaseUrl?: string
+  publishedAt?: string
+  checkedAt?: string
+  installSource?: 'github' | 'file' | 'registry' | 'unknown'
+  dependencySpec?: string
+  restartRequired?: boolean
+  errorCode?: string
+  errorDetail?: string
 }
 
 /** Host status endpoint payload. */
 export interface UnrestrictedStatus {
   enabled: boolean
-  /** Fingerprint of the contract bytes the host half deploys. */
-  contract: string
+  /** Current plugin version reported by the host half. */
+  version?: string
   modes: Record<string, UnrestrictedModeState>
+  update?: UnrestrictedUpdateInfo
 }
 
 /** Deploy preview for one preset: what switching on would actually assemble. */
 export interface UnrestrictedPreview {
   presetId: string
-  contract: string
   available: boolean
   /** `live` = bytes a live agent received; `standing` = preset scope, no agent bound. */
   source?: 'live' | 'standing'
@@ -42,7 +57,9 @@ export interface UnrestrictedPreview {
   text?: string
   bytes?: number
   lines?: number
-  /** Why no preview could be built; present when unavailable. */
+  /** Structured error code when unavailable. */
+  errorCode?: string
+  /** Diagnostic reason when unavailable. */
   reason?: string
 }
 
@@ -50,12 +67,13 @@ export interface UnrestrictedPreview {
 export interface UnrestrictedPreviewEntry {
   status: 'loading' | 'ready' | 'failed'
   preview?: UnrestrictedPreview
+  errorCode?: string
   message?: string
 }
 
 /** Full view snapshot the card subscribes to. */
 export interface UnrestrictedViewSnapshot {
-  /** Persisted toggle; undefined until the settings scope first syncs. */
+  /** Persisted toggle; false until the settings scope first syncs. */
   enabled: boolean
   /** Whether the Host document accepts writes. */
   writable: boolean
@@ -63,9 +81,11 @@ export interface UnrestrictedViewSnapshot {
   settingsStatus: 'loading' | 'ready' | 'unavailable'
   /** Live host status; null until the first RPC answer. */
   status: UnrestrictedStatus | null
+  /** Version and update check state. */
+  update: UnrestrictedUpdateInfo
   /** presetId -> fetched deploy preview. */
   previews: Record<string, UnrestrictedPreviewEntry>
-  /** 是否仍有设置写入或状态检查尚未完成。 */
+  /** Whether a settings write or status refresh is in flight. */
   busy: boolean
   /** Last transport/business failure, if any. */
   message?: string
@@ -80,7 +100,7 @@ export interface UnrestrictedViewSource {
   subscribe(listener: () => void): () => void
 }
 
-/** Inject face handed to the card at registration. */
+/** Inject face handed to the card and detail badge at registration. */
 export interface UnrestrictedCardInjected {
   hooks: {
     /** Reactive card view. */
@@ -88,16 +108,21 @@ export interface UnrestrictedCardInjected {
   }
   /** Persist the toggle. */
   setEnabled: (enabled: boolean) => Promise<void>
-  /** Re-run the host-side anchor checks and refresh. */
+  /** Re-validate runtime state and refresh. */
   recheck: () => Promise<void>
   /** Re-read host status and invalidate cached previews. */
   refresh: () => Promise<void>
   /** Fetch the exact fused prompt this preset would deploy. */
   loadPreview: (presetId: string) => Promise<void>
+  /** Check whether a newer plugin version is available. */
+  checkUpdate: (force?: boolean) => Promise<void>
+  /** Download and install the latest version into the active profile. */
+  performUpdate: () => Promise<void>
 }
 
 const RPC_CHANNEL = '/dsh-unrestricted'
 const SETTINGS_NS = 'unrestricted'
+const DEFAULT_VERSION = '0.2.6'
 
 /** Human-readable error text for the banner. */
 function messageOf(error: unknown): string {
@@ -118,11 +143,15 @@ export function createUnrestrictedController(ctx: Context) {
     writable: false,
     settingsStatus: 'loading',
     status: null,
+    update: {
+      state: 'idle',
+      currentVersion: DEFAULT_VERSION,
+      restartRequired: false,
+    },
     previews: {},
     busy: false,
   }
   const listeners = new Set<() => void>()
-  // 每个预设只接收最近一次请求；清空标记同时废弃所有在途旧预览。
   const previewRequests = new Map<string, symbol>()
   let statusGeneration = 0
   let pendingOperations = 0
@@ -144,6 +173,7 @@ export function createUnrestrictedController(ctx: Context) {
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
+      update: snapshot.update,
       previews: snapshot.previews,
       busy: pendingOperations > 0,
       message: snapshot.message,
@@ -180,7 +210,19 @@ export function createUnrestrictedController(ctx: Context) {
         const status = await call<UnrestrictedStatus>(endpoint, {})
         if (generation !== statusGeneration) return
         if (clearPreviews) invalidatePreviews()
-        snapshot = { ...snapshot, status, message: undefined }
+        const nextUpdate = status.update !== undefined
+          && (snapshot.update.state === 'idle' || status.update.state !== 'idle')
+          ? status.update
+          : {
+              ...snapshot.update,
+              currentVersion: status.version ?? snapshot.update.currentVersion,
+            }
+        snapshot = {
+          ...snapshot,
+          status,
+          update: nextUpdate,
+          message: undefined,
+        }
       } catch (error) {
         if (generation !== statusGeneration) return
         snapshot = { ...snapshot, message: messageOf(error) }
@@ -208,8 +250,7 @@ export function createUnrestrictedController(ctx: Context) {
   }
 
   /**
-   * Fetch one preset's deploy preview. The card renders the raw fused prompt,
-   * so the user reads the exact bytes before switching the mode on.
+   * Fetch one preset's deploy preview.
    * @param presetId - preset id from the card's row.
    */
   async function loadPreview(presetId: string): Promise<void> {
@@ -231,7 +272,71 @@ export function createUnrestrictedController(ctx: Context) {
       if (previewRequests.get(presetId) !== request) return
       snapshot = {
         ...snapshot,
-        previews: { ...snapshot.previews, [presetId]: { status: 'failed', message: messageOf(error) } },
+        previews: {
+          ...snapshot.previews,
+          [presetId]: {
+            status: 'failed',
+            errorCode: 'preview-failed',
+            message: messageOf(error),
+          },
+        },
+      }
+    }
+    publish()
+  }
+
+  /**
+   * Check whether a newer version is available from GitHub or the local source directory.
+   * @param force - bypass in-flight reuse and force a fresh check.
+   */
+  async function checkUpdate(force = false): Promise<void> {
+    if (snapshot.update.state === 'checking' || snapshot.update.state === 'updating') return
+    snapshot = {
+      ...snapshot,
+      update: { ...snapshot.update, state: 'checking', errorCode: undefined, errorDetail: undefined },
+    }
+    publish()
+    try {
+      const update = await call<UnrestrictedUpdateInfo>('check-update', { force })
+      snapshot = { ...snapshot, update }
+    } catch (error) {
+      snapshot = {
+        ...snapshot,
+        update: {
+          ...snapshot.update,
+          state: 'failed',
+          errorCode: 'update-check-failed',
+          errorDetail: messageOf(error),
+        },
+      }
+    }
+    publish()
+  }
+
+  /**
+   * Download and install the latest version into the active profile.
+   */
+  async function performUpdate(): Promise<void> {
+    if (snapshot.update.state === 'updating') return
+    snapshot = {
+      ...snapshot,
+      update: { ...snapshot.update, state: 'updating', errorCode: undefined, errorDetail: undefined },
+    }
+    publish()
+    try {
+      const update = await call<UnrestrictedUpdateInfo>('perform-update', {
+        targetTag: snapshot.update.latestTag,
+      })
+      snapshot = { ...snapshot, update }
+    } catch (error) {
+      snapshot = {
+        ...snapshot,
+        update: {
+          ...snapshot.update,
+          state: 'failed',
+          errorCode: 'update-install-failed',
+          errorDetail: messageOf(error),
+        },
       }
     }
     publish()
@@ -241,8 +346,6 @@ export function createUnrestrictedController(ctx: Context) {
     () => settings.subscribe(publish),
     'dsh-unrestricted: settings mirror',
   )
-  // External profile configuration edits commit through the settings service, which
-  // forwards one document event per commit regardless of namespace.
   ctx.effect(
     () => ctx.remote.$on('settings/document-updated', (namespace?: string) => {
       if (namespace === undefined || namespace === SETTINGS_NS) void refresh(true)
@@ -259,6 +362,8 @@ export function createUnrestrictedController(ctx: Context) {
       recheck,
       refresh: () => refresh(true),
       loadPreview,
+      checkUpdate,
+      performUpdate,
     }),
   }
 }

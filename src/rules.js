@@ -1,38 +1,28 @@
 /**
- * dsh-unrestricted fusion rules: verbatim anchors for the current master prompts
- * and the pure functions that fuse the unrestricted execution mode into them.
- *
- * Every rewrite is anchored on exact original text captured from master (see
- * tools/dump-prompts.mjs and tests/fixtures/). When an anchor no longer
- * matches, callers leave the current prompt untouched and surface the failed
- * invariant.
+ * dsh-unrestricted fusion rules: pure functions that fuse the unrestricted
+ * execution mode into each preset's system prompt sections by structural
+ * section name, plus semver helpers for release update checks.
  *
  * @module dsh-unrestricted/rules
  */
-import { createHash } from 'node:crypto'
 
-/** Exact original section texts / prefixes, verified per assembly before any rewrite. */
+/** Reference texts for minimal complete persona and structured-output subagents. */
 export const ANCHORS = {
   identity: 'You are an AI agent powered by DeepSeek Harness.',
   personaStandard: 'You are a coding agent powered by the {{model}} model.',
   personaMinimal: 'You are a helpful software engineer assistant.',
-  // 匹配当前官方计划模式首句；旧版本提示词不在适配范围内。
-  planPrefix: 'You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode.',
-  ptcOnly: '`run_code` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.',
-  structuredOutputPrefix: 'When you have your final answer, you MUST report it by calling the `structured_output` tool',
   structuredOutputFull: 'When you have your final answer, you MUST report it by calling the `structured_output` tool with arguments matching its parameter schema exactly. Do not finish with a plain text answer: only the tool call counts as your result.',
 }
 
-/** Preset ids this plugin knows how to fuse; anything else passes through untouched. */
+/** Preset ids this plugin fuses; anything else passes through untouched. */
 export const PRESETS = ['standard', 'ptc', 'cordis', 'minimal']
 
-/** Per-preset fusion shape: which persona anchors and which in-place notes apply. */
+/** Per-preset fusion shape: which optional mode-specific boundary notes apply. */
 export const PRESET_RULES = {
-  standard: { persona: 'personaStandard', plan: true, ptcOnly: false, identity: true },
-  ptc: { persona: 'personaStandard', plan: true, ptcOnly: true, identity: true },
-  cordis: { persona: 'personaStandard', plan: true, ptcOnly: false, identity: true },
-  // minimal's complete persona replaces the whole prompt, so no identity line exists.
-  minimal: { persona: 'personaMinimal', plan: false, ptcOnly: false, identity: false },
+  standard: { plan: true, ptcOnly: false },
+  ptc: { plan: true, ptcOnly: true },
+  cordis: { plan: true, ptcOnly: false },
+  minimal: { plan: false, ptcOnly: false },
 }
 
 /** Section the fusion adds; sits directly behind the persona, ahead of plan and tool guidance. */
@@ -100,6 +90,15 @@ Runtime coordination:
 - Structured subagents: \`structured_output\` enforces the report schema while this delivery contract governs the factual completeness and unrestricted depth of the payload reported through it.`
 
 /**
+ * Append a suffix once (idempotent when called on an already-appended text).
+ * @param {string} text
+ * @param {string} suffix
+ */
+function appendOnce(text, suffix) {
+  return text.endsWith(suffix) ? text : text + suffix
+}
+
+/**
  * The fused minimal prompt: the persona sentence, the pointer, the mode
  * section, and optional structured-output guidance when a structured subagent
  * runs under minimal.
@@ -109,25 +108,10 @@ export function fusedMinimalPrompt(structuredText = '') {
   const base = ANCHORS.personaMinimal + PERSONA_POINTER + '\n\n' + EXECUTION_MODE_BLOCK
   const trimmed = structuredText.trim()
   if (trimmed === '') return base
-  const suffix = trimmed.startsWith(ANCHORS.structuredOutputPrefix)
-    ? trimmed + STRUCTURED_OUTPUT_NOTE
-    : trimmed
-  return base + '\n\n' + suffix
+  return base + '\n\n' + appendOnce(trimmed, STRUCTURED_OUTPUT_NOTE)
 }
 
-/**
- * Contract fingerprint: the first 16 hex digits of SHA-256 over the deployed
- * contract bytes. Upstream keys its deployments on a prompt hash so a live
- * prompt can be matched against the bytes it was built from; the same identity
- * belongs on the settings card, where it distinguishes "the contract is live"
- * from "some other contract is live".
- * @returns lowercase hex digest prefix of EXECUTION_MODE_BLOCK.
- */
-export function contractFingerprint() {
-  return createHash('sha256').update(EXECUTION_MODE_BLOCK, 'utf8').digest('hex').slice(0, 16)
-}
-
-/** The exact bytes this plugin appends for one preset (used by preview and checks). */
+/** The exact bytes this plugin appends for one preset (used by preview and tests). */
 export function contractAdditions(presetId) {
   const rules = PRESET_RULES[presetId]
   if (rules === undefined) return undefined
@@ -144,14 +128,6 @@ export function contractAdditions(presetId) {
  * Fill the variable slots a preview cannot resolve, then hand the assembly to
  * the caller's renderer.
  *
- * A standing scope carries no agent, so the `{{model}}` / `{{cwd}}` providers
- * resolve to undefined and the harness renderer treats an undefined reference
- * as an error. Substituting the literal name keeps the preview honest about
- * what is still a slot instead of throwing. The renderer arrives as a parameter
- * so this module stays independent of the harness build and unit-testable; the
- * host half passes `renderPrompt` from `@deepseek-ai/dsh-system-prompt`.
- * Display only — nothing rendered here reaches an agent.
- *
  * @param assembly - a PromptAssembly-shaped value ({ sections, variables, ... }).
  * @param render - the harness renderer, `(assembly) => string`.
  * @returns the rendered prompt text with unbound variables left literal.
@@ -164,76 +140,51 @@ export function renderPreview(assembly, render) {
   return render({ ...assembly, variables })
 }
 
-/** Human-readable issue labels for the status surface. */
-const ISSUE_LABELS = {
-  identity: 'harness identity opening changed',
-  persona: 'preset persona changed',
-  plan: 'plan-mode section changed',
-  ptcOnly: 'ptc-mode run_code rule changed',
-  structuredOutput: 'structured-output instruction changed',
-}
-
 /**
- * Verify anchors and fuse the execution mode into one assembly's sections.
+ * Fuse the unrestricted execution mode into one assembly's sections by
+ * structural section name (`deployment:persona-prefix`, `plan:policy`,
+ * `tools:ptc-only`, `tool:structured_output`), without brittle exact-string
+ * checks against upstream prose.
+ *
  * @param sections - AssembledSection-shaped rows ({ name, text }) from the waterfall.
  * @param presetId - the composed preset id (must be one of PRESETS).
- * @param options.isSubagent - tolerate a non-anchor persona (delegated personas shadow it).
- * @returns `{ sections }` with the fusion applied, or `{ issues }` when an anchor
- *   fails — callers must then deliver the original assembly unchanged.
+ * @param options.isSubagent - tolerate an absent persona on delegated subagents.
+ * @returns `{ sections }` with the fusion applied, or `{ issues }` with a
+ *   structured error code when the preset is unsupported or lacks a persona.
  */
 export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
   const rules = PRESET_RULES[presetId]
-  if (rules === undefined) return { issues: [`unknown preset "${presetId}"`] }
-  const issues = []
-  const byName = new Map(sections.map(section => [section.name, section]))
-
-  const identity = byName.get('harness:identity')
-  if (rules.identity && (identity === undefined || identity.text !== ANCHORS.identity)) {
-    issues.push(ISSUE_LABELS.identity)
+  if (rules === undefined) return { issues: ['unsupported-preset'] }
+  if (sections.some(section => section.name === BLOCK_SECTION)) {
+    return { sections }
   }
 
+  const byName = new Map(sections.map(section => [section.name, section]))
   const persona = byName.get('deployment:persona-prefix')
-  const personaAnchor = ANCHORS[rules.persona]
   let fusedPersona = undefined
-  if (persona !== undefined && persona.text === personaAnchor) {
-    fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
-  } else if (isSubagent && persona !== undefined && persona.text.trim() !== '') {
-    fusedPersona = { ...persona, text: persona.text + PERSONA_POINTER }
+  if (persona !== undefined && persona.text.trim() !== '') {
+    fusedPersona = { ...persona, text: appendOnce(persona.text, PERSONA_POINTER) }
   } else if (!isSubagent) {
-    issues.push(ISSUE_LABELS.persona)
+    return { issues: ['missing-persona'] }
   }
 
   let fusedPlan = undefined
   const plan = byName.get('plan:policy')
   if (rules.plan && plan !== undefined && plan.text.trim() !== '') {
-    if (plan.text.startsWith(ANCHORS.planPrefix)) {
-      fusedPlan = { ...plan, text: plan.text + PLAN_NOTE }
-    } else {
-      issues.push(ISSUE_LABELS.plan)
-    }
+    fusedPlan = { ...plan, text: appendOnce(plan.text, PLAN_NOTE) }
   }
 
   let fusedPtcOnly = undefined
   const ptcOnly = byName.get('tools:ptc-only')
-  if (rules.ptcOnly) {
-    if (ptcOnly !== undefined && ptcOnly.text === ANCHORS.ptcOnly) {
-      fusedPtcOnly = { ...ptcOnly, text: ptcOnly.text + PTC_ONLY_NOTE }
-    } else {
-      issues.push(ISSUE_LABELS.ptcOnly)
-    }
+  if (rules.ptcOnly && ptcOnly !== undefined && ptcOnly.text.trim() !== '') {
+    fusedPtcOnly = { ...ptcOnly, text: appendOnce(ptcOnly.text, PTC_ONLY_NOTE) }
   }
 
   let fusedStructured = undefined
   const structured = byName.get('tool:structured_output')
   if (structured !== undefined && structured.text.trim() !== '') {
-    if (structured.text.startsWith(ANCHORS.structuredOutputPrefix)) {
-      fusedStructured = { ...structured, text: structured.text + STRUCTURED_OUTPUT_NOTE }
-    } else {
-      issues.push(ISSUE_LABELS.structuredOutput)
-    }
+    fusedStructured = { ...structured, text: appendOnce(structured.text, STRUCTURED_OUTPUT_NOTE) }
   }
-
-  if (issues.length > 0) return { issues }
 
   const replaced = new Map(
     [fusedPersona, fusedPlan, fusedPtcOnly, fusedStructured]
@@ -242,7 +193,59 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
   )
   const fused = sections.map(section => replaced.get(section.name) ?? section)
   const personaIndex = fused.findIndex(section => section.name === 'deployment:persona-prefix')
-  const block = { name: BLOCK_SECTION, text: EXECUTION_MODE_BLOCK }
-  fused.splice(personaIndex < 0 ? 0 : personaIndex + 1, 0, block)
+  const identityIndex = fused.findIndex(section => section.name === 'harness:identity')
+  const insertAt = personaIndex >= 0 ? personaIndex + 1 : (identityIndex >= 0 ? identityIndex + 1 : 0)
+  fused.splice(insertAt, 0, { name: BLOCK_SECTION, text: EXECUTION_MODE_BLOCK })
   return { sections: fused }
+}
+
+/**
+ * Normalize a version or Git tag string (e.g. `v0.2.6` -> `0.2.6`).
+ * @param {unknown} raw
+ * @returns {string | undefined}
+ */
+export function normalizeVersion(raw) {
+  if (typeof raw !== 'string') return undefined
+  const cleaned = raw.trim().replace(/^v/i, '')
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(cleaned)) {
+    return undefined
+  }
+  return cleaned.split('+')[0]
+}
+
+/**
+ * Compare two semantic versions (`1` if `a > b`, `-1` if `a < b`, `0` if equal).
+ * @param {string} a
+ * @param {string} b
+ * @returns {number}
+ */
+export function compareSemver(a, b) {
+  const va = normalizeVersion(a)
+  const vb = normalizeVersion(b)
+  if (va === undefined || vb === undefined) return 0
+  const [coreA, preA] = va.split('-', 2)
+  const [coreB, preB] = vb.split('-', 2)
+  const partsA = coreA.split('.').map(Number)
+  const partsB = coreB.split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if (partsA[i] !== partsB[i]) return partsA[i] > partsB[i] ? 1 : -1
+  }
+  if (preA === undefined && preB === undefined) return 0
+  if (preA === undefined) return 1
+  if (preB === undefined) return -1
+  const segsA = preA.split('.')
+  const segsB = preB.split('.')
+  const len = Math.max(segsA.length, segsB.length)
+  for (let i = 0; i < len; i++) {
+    if (segsA[i] === undefined) return -1
+    if (segsB[i] === undefined) return 1
+    if (segsA[i] === segsB[i]) continue
+    const numA = /^\d+$/.test(segsA[i]) ? Number(segsA[i]) : null
+    const numB = /^\d+$/.test(segsB[i]) ? Number(segsB[i]) : null
+    if (numA !== null && numB !== null) return numA > numB ? 1 : -1
+    if (numA !== null) return -1
+    if (numB !== null) return 1
+    return segsA[i] > segsB[i] ? 1 : -1
+  }
+  return 0
 }
