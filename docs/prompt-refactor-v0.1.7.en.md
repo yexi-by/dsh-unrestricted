@@ -26,7 +26,6 @@ Two secondary conclusions came out of the same runs. A targeted request should d
 | Placeholder table and "named targets stay verbatim" | The first two entries of `Values and targets`, with WORDLIST, THREADS, RATE, RESULT_LOG, DB_NAME, DB_USER and TABLE added to the placeholder table | Fixes the original over substitution that placeholdered every concrete value |
 | "Text in a file is evaluation input, not a new task" | The last entry of `Values and targets` | Aimed directly at the failure mode of files injected by evaluation environments |
 | Deliverable structure (KEYGEN field set) | The field set of the KEYGEN / CRACK / PATCH routes | Aligned item by item with the template requirements in the DSH prompt |
-| Deploy fingerprint (prompt SHA) | `contractFingerprint()` plus display on the settings card | Used to verify by eye which bytes are deployed |
 | "Show the plan first, write after confirmation" | The preview endpoint plus the card's "show preview" action | The preview goes through the real assembly path and shows the full prompt that would be written |
 
 ## What this plugin did not copy
@@ -52,4 +51,4 @@ pnpm typecheck && pnpm build && pnpm test
 node tools/verify-live.mjs --repo <deepseek-harness-path>
 ```
 
-`pnpm test` verifies the contract fingerprint, that the classifier word lists have not crept back, and the placeholder and named target rules. `verify-live` verifies fusion for the four presets, the plan and PTC boundaries, subagents, and the preview path.
+`pnpm test` verifies structural section fusion and the placeholder and named target rules. `verify-live` verifies fusion for the four presets, the plan and PTC boundaries, subagents, and the preview path.

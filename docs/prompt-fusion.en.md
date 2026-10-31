@@ -66,16 +66,13 @@ Each DSH preset structures its prompt sections differently:
 
 ---
 
-## 4. Anchor Checks & Preview
+## 4. Structural Fusion & Prompt Preview
 
-### Anchor Verification
-Before each assembly, the plugin checks expected anchor strings in the stock prompt (`ANCHORS` in `src/rules.js`), including identity strings, persona openings, Plan Mode policies, and `run_code` descriptions. If any anchor fails to match after an upstream DSH update, that mode falls back to the stock prompt and lists the failed item in the UI.
+### Structural Section Fusion
+During assembly, the plugin locates and fuses prompt sections by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both DSH Web and DSH Desktop without brittle exact-string or hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
 
-### Rule Fingerprint
-Computes the first 16 hex characters of the rule block's SHA-256 hash and displays it on the settings card for version checks.
-
-### Prompt Preview
-An RPC endpoint returns the assembled system prompt text, line count, and byte size for each mode in the settings UI.
+### Prompt Preview & Updates
+The settings UI queries an RPC endpoint to preview the full assembled system prompt, line count, and byte size for each mode, and checks GitHub Releases for one-click updates.
 
 ---
 
