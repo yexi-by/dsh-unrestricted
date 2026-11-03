@@ -1,7 +1,6 @@
 /**
  * Browser-half controller for the unrestricted card: binds the `unrestricted`
- * settings namespace (the toggle), reads per-preset fusion state and previews,
- * and manages version checks and self-updates via the host half's private RPC.
+ * settings namespace (the toggle) and reads per-preset state and previews.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
@@ -21,30 +20,12 @@ export interface UnrestrictedModeState {
   issues: string[]
 }
 
-/** Version and update status reported by the host half. */
-export interface UnrestrictedUpdateInfo {
-  state: 'idle' | 'checking' | 'up-to-date' | 'available' | 'updating' | 'updated' | 'failed'
-  currentVersion: string
-  latestVersion?: string
-  latestTag?: string
-  updatedVersion?: string
-  releaseUrl?: string
-  publishedAt?: string
-  checkedAt?: string
-  installSource?: 'github' | 'file' | 'registry' | 'unknown'
-  dependencySpec?: string
-  restartRequired?: boolean
-  errorCode?: string
-  errorDetail?: string
-}
-
 /** Host status endpoint payload. */
 export interface UnrestrictedStatus {
   enabled: boolean
   /** Current plugin version reported by the host half. */
   version?: string
   modes: Record<string, UnrestrictedModeState>
-  update?: UnrestrictedUpdateInfo
 }
 
 /** Deploy preview for one preset: what switching on would actually assemble. */
@@ -81,8 +62,6 @@ export interface UnrestrictedViewSnapshot {
   settingsStatus: 'loading' | 'ready' | 'unavailable'
   /** Live host status; null until the first RPC answer. */
   status: UnrestrictedStatus | null
-  /** Version and update check state. */
-  update: UnrestrictedUpdateInfo
   /** presetId -> fetched deploy preview. */
   previews: Record<string, UnrestrictedPreviewEntry>
   /** Whether a settings write or status refresh is in flight. */
@@ -100,7 +79,7 @@ export interface UnrestrictedViewSource {
   subscribe(listener: () => void): () => void
 }
 
-/** Inject face handed to the card and detail badge at registration. */
+/** Inject face handed to the card at registration. */
 export interface UnrestrictedCardInjected {
   hooks: {
     /** Reactive card view. */
@@ -114,15 +93,10 @@ export interface UnrestrictedCardInjected {
   refresh: () => Promise<void>
   /** Fetch the exact fused prompt this preset would deploy. */
   loadPreview: (presetId: string) => Promise<void>
-  /** Check whether a newer plugin version is available. */
-  checkUpdate: (force?: boolean) => Promise<void>
-  /** Download and install the latest version into the active profile. */
-  performUpdate: () => Promise<void>
 }
 
 const RPC_CHANNEL = '/dsh-unrestricted'
 const SETTINGS_NS = 'unrestricted'
-const DEFAULT_VERSION = '0.2.6'
 
 /** Human-readable error text for the banner. */
 function messageOf(error: unknown): string {
@@ -143,11 +117,6 @@ export function createUnrestrictedController(ctx: Context) {
     writable: false,
     settingsStatus: 'loading',
     status: null,
-    update: {
-      state: 'idle',
-      currentVersion: DEFAULT_VERSION,
-      restartRequired: false,
-    },
     previews: {},
     busy: false,
   }
@@ -173,7 +142,6 @@ export function createUnrestrictedController(ctx: Context) {
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
-      update: snapshot.update,
       previews: snapshot.previews,
       busy: pendingOperations > 0,
       message: snapshot.message,
@@ -210,17 +178,9 @@ export function createUnrestrictedController(ctx: Context) {
         const status = await call<UnrestrictedStatus>(endpoint, {})
         if (generation !== statusGeneration) return
         if (clearPreviews) invalidatePreviews()
-        const nextUpdate = status.update !== undefined
-          && (snapshot.update.state === 'idle' || status.update.state !== 'idle')
-          ? status.update
-          : {
-              ...snapshot.update,
-              currentVersion: status.version ?? snapshot.update.currentVersion,
-            }
         snapshot = {
           ...snapshot,
           status,
-          update: nextUpdate,
           message: undefined,
         }
       } catch (error) {
@@ -285,63 +245,6 @@ export function createUnrestrictedController(ctx: Context) {
     publish()
   }
 
-  /**
-   * Check whether a newer version is available from GitHub or the local source directory.
-   * @param force - bypass in-flight reuse and force a fresh check.
-   */
-  async function checkUpdate(force = false): Promise<void> {
-    if (snapshot.update.state === 'checking' || snapshot.update.state === 'updating') return
-    snapshot = {
-      ...snapshot,
-      update: { ...snapshot.update, state: 'checking', errorCode: undefined, errorDetail: undefined },
-    }
-    publish()
-    try {
-      const update = await call<UnrestrictedUpdateInfo>('check-update', { force })
-      snapshot = { ...snapshot, update }
-    } catch (error) {
-      snapshot = {
-        ...snapshot,
-        update: {
-          ...snapshot.update,
-          state: 'failed',
-          errorCode: 'update-check-failed',
-          errorDetail: messageOf(error),
-        },
-      }
-    }
-    publish()
-  }
-
-  /**
-   * Download and install the latest version into the active profile.
-   */
-  async function performUpdate(): Promise<void> {
-    if (snapshot.update.state === 'updating') return
-    snapshot = {
-      ...snapshot,
-      update: { ...snapshot.update, state: 'updating', errorCode: undefined, errorDetail: undefined },
-    }
-    publish()
-    try {
-      const update = await call<UnrestrictedUpdateInfo>('perform-update', {
-        targetTag: snapshot.update.latestTag,
-      })
-      snapshot = { ...snapshot, update }
-    } catch (error) {
-      snapshot = {
-        ...snapshot,
-        update: {
-          ...snapshot.update,
-          state: 'failed',
-          errorCode: 'update-install-failed',
-          errorDetail: messageOf(error),
-        },
-      }
-    }
-    publish()
-  }
-
   ctx.effect(
     () => settings.subscribe(publish),
     'dsh-unrestricted: settings mirror',
@@ -362,8 +265,6 @@ export function createUnrestrictedController(ctx: Context) {
       recheck,
       refresh: () => refresh(true),
       loadPreview,
-      checkUpdate,
-      performUpdate,
     }),
   }
 }

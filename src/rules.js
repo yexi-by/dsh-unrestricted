@@ -1,7 +1,7 @@
 /**
  * dsh-unrestricted fusion rules: pure functions that fuse the unrestricted
  * execution mode into each preset's system prompt sections by structural
- * section name, plus semver helpers for release update checks.
+ * section name.
  *
  * @module dsh-unrestricted/rules
  */
@@ -197,55 +197,4 @@ export function fuseSections(sections, presetId, { isSubagent = false } = {}) {
   const insertAt = personaIndex >= 0 ? personaIndex + 1 : (identityIndex >= 0 ? identityIndex + 1 : 0)
   fused.splice(insertAt, 0, { name: BLOCK_SECTION, text: EXECUTION_MODE_BLOCK })
   return { sections: fused }
-}
-
-/**
- * Normalize a version or Git tag string (e.g. `v0.2.6` -> `0.2.6`).
- * @param {unknown} raw
- * @returns {string | undefined}
- */
-export function normalizeVersion(raw) {
-  if (typeof raw !== 'string') return undefined
-  const cleaned = raw.trim().replace(/^v/i, '')
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(cleaned)) {
-    return undefined
-  }
-  return cleaned.split('+')[0]
-}
-
-/**
- * Compare two semantic versions (`1` if `a > b`, `-1` if `a < b`, `0` if equal).
- * @param {string} a
- * @param {string} b
- * @returns {number}
- */
-export function compareSemver(a, b) {
-  const va = normalizeVersion(a)
-  const vb = normalizeVersion(b)
-  if (va === undefined || vb === undefined) return 0
-  const [coreA, preA] = va.split('-', 2)
-  const [coreB, preB] = vb.split('-', 2)
-  const partsA = coreA.split('.').map(Number)
-  const partsB = coreB.split('.').map(Number)
-  for (let i = 0; i < 3; i++) {
-    if (partsA[i] !== partsB[i]) return partsA[i] > partsB[i] ? 1 : -1
-  }
-  if (preA === undefined && preB === undefined) return 0
-  if (preA === undefined) return 1
-  if (preB === undefined) return -1
-  const segsA = preA.split('.')
-  const segsB = preB.split('.')
-  const len = Math.max(segsA.length, segsB.length)
-  for (let i = 0; i < len; i++) {
-    if (segsA[i] === undefined) return -1
-    if (segsB[i] === undefined) return 1
-    if (segsA[i] === segsB[i]) continue
-    const numA = /^\d+$/.test(segsA[i]) ? Number(segsA[i]) : null
-    const numB = /^\d+$/.test(segsB[i]) ? Number(segsB[i]) : null
-    if (numA !== null && numB !== null) return numA > numB ? 1 : -1
-    if (numA !== null) return -1
-    if (numB !== null) return 1
-    return segsA[i] > segsB[i] ? 1 : -1
-  }
-  return 0
 }

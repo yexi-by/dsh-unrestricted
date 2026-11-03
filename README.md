@@ -82,7 +82,7 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ### 结构化融合与安全回退
 
-插件按 DSH 官方提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行幂等融合，不依赖脆弱的逐字文案哈希校验，兼容最新 DSH Web（`0.2.2-alpha.2`）与 DSH Desktop（`0.2.1-rc.5`）。如果自定义模式缺少角色设定段落，对应模式会自动保留原版提示词并在设置页友好提示。
+插件按 DSH 官方提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行幂等融合，不依赖脆弱的逐字文案哈希校验，兼容最新 DSH Web（`0.2.2-alpha.3`）与 DSH Desktop（`0.2.1-rc.5`）。如果自定义模式缺少角色设定段落，对应模式会自动保留原版提示词并在设置页友好提示。
 
 ### 即时开关
 
@@ -94,21 +94,21 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ```sh
 # Web 端安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
 
 # 桌面端安装指定版本（使用桌面端内置 CLI）
-"& '$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd' plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.6"
+"& '$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd' plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.7"
 ```
 
 安装后重启 `dsh web` 或 DSH 桌面端，按下方[使用说明](#使用说明)启用。
 
 #### 更新
 
-可在 DSH **「插件 → dsh-unrestricted」** 详情页底部的 **「版本与更新」** 卡片中点击 **「检查更新」** 与 **「立即更新」** 一键完成更新，或通过命令行手动更新：
+更新统一使用 DSH 原生插件管理页的更新功能，或通过以下命令更新。插件不再自行查询 GitHub 或执行 pnpm 安装。
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
 ```
 
 更新后重启 `dsh web` 或 DSH 桌面端。
@@ -139,7 +139,6 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 设置卡片中同时提供：
 
 - **模式覆盖与提示词预览**：显示 Standard、PTC、Cordis、Minimal 四种模式的生效状态，支持展开查看或一键复制各模式最终生成的完整系统提示词。
-- **版本与更新**：打开插件详情页时自动检测 GitHub 最新版本并在标题栏显示「可更新」提醒徽标，支持在页面内一键更新。
 
 ---
 

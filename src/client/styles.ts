@@ -229,50 +229,6 @@ const CSS = `
   overflow-wrap: anywhere;
 }
 
-.dsh-unrestricted-metaGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px 14px;
-  margin: 0;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-lg, 10px);
-  padding: 11px 14px;
-  background: var(--dsw-alias-bg-layer-2);
-}
-
-.dsh-unrestricted-metaItem {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dsh-unrestricted-metaItem dt {
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.dsh-unrestricted-metaItem dd {
-  margin: 0;
-  font-size: 13px;
-  line-height: 19px;
-  font-weight: 500;
-  color: var(--dsw-alias-label-primary);
-  overflow-wrap: anywhere;
-}
-
-.dsh-unrestricted-link {
-  color: var(--dsw-alias-state-business-primary);
-  font-size: 12px;
-  line-height: 18px;
-  text-decoration: none;
-}
-
-.dsh-unrestricted-link:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 640px) {
   .dsh-unrestricted-card {
     padding: 14px;

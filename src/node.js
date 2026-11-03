@@ -1,7 +1,6 @@
 /**
  * dsh-unrestricted host half: fuses the unrestricted execution mode into each
- * preset's ORIGINAL system prompt at assembly time, and provides version check
- * and self-update support for both DSH Web and DSH Desktop profiles.
+ * preset's ORIGINAL system prompt at assembly time and exposes read-only previews.
  *
  * Mechanism (public interfaces only):
  * - A root `system-prompt/assemble` waterfall listener receives every agent's
@@ -23,19 +22,14 @@
  *   (`ptc` when `tools:ptc-only` is present, otherwise `standard`) and fuses
  *   their assemblies directly.
  */
-import { execFile } from 'node:child_process'
-import fs from 'node:fs/promises'
-import path from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import {
   ANCHORS,
   PRESETS,
   PRESET_RULES,
-  compareSemver,
   fuseSections,
   fusedMinimalPrompt,
-  normalizeVersion,
   renderPreview,
 } from './rules.js'
 
@@ -43,21 +37,12 @@ import {
 export const name = 'dsh-unrestricted'
 
 /** Current plugin package version. */
-export const PLUGIN_VERSION = '0.2.6'
-
-/** Canonical GitHub repository for release checks and git-based updates. */
-export const GITHUB_REPO = 'yexi-by/dsh-unrestricted'
+export const PLUGIN_VERSION = '0.2.7'
 
 /** Services required by this plugin (all base-backed profiles provide these). */
 export const inject = ['settings', 'systemPrompt', 'loader']
 
 const RPC_CHANNEL = '/dsh-unrestricted'
-const RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`
-const RAW_PACKAGE_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/master/package.json`
-const JSDELIVR_PACKAGE_URL = `https://cdn.jsdelivr.net/gh/${GITHUB_REPO}@master/package.json`
-const UPDATE_CHECK_TIMEOUT_MS = 10_000
-const PNPM_TIMEOUT_MS = 120_000
-
 export const Config = z.object({
   enabled: z.boolean().default(false),
 }).default({ enabled: false }).volatile()
@@ -72,59 +57,9 @@ function ok(value) {
   return { ok: true, value }
 }
 
-/** Read and parse a JSON file, returning undefined when absent or unreadable. */
-async function readJsonFile(filePath) {
-  try {
-    const raw = await fs.readFile(filePath, 'utf8')
-    return JSON.parse(raw)
-  } catch {
-    return undefined
-  }
-}
-
-/** Run pnpm inside a profile directory using Desktop's bundled runtime or system pnpm. */
-function runPnpm(profileDir, args, packageManager) {
-  const command = packageManager?.command ?? (process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm')
-  const fullArgs = [
-    ...(packageManager?.argsPrefix ?? []),
-    '--dir',
-    profileDir,
-    '--config.confirmModulesPurge=false',
-    ...args,
-  ]
-  const env = packageManager?.env !== undefined
-    ? { ...process.env, ...packageManager.env }
-    : process.env
-  const useShell = packageManager?.command === undefined && process.platform === 'win32'
-  return new Promise((resolve, reject) => {
-    execFile(
-      command,
-      fullArgs,
-      {
-        cwd: profileDir,
-        env,
-        shell: useShell,
-        windowsHide: true,
-        timeout: PNPM_TIMEOUT_MS,
-        maxBuffer: 8 * 1024 * 1024,
-      },
-      (error, stdout, stderr) => {
-        if (error) {
-          const detail = [stderr, stdout, error.message]
-            .map(part => String(part ?? '').trim())
-            .find(part => part.length > 0) ?? 'pnpm exited with an error'
-          reject(new Error(detail))
-          return
-        }
-        resolve({ stdout, stderr })
-      },
-    )
-  })
-}
-
 /**
  * @param ctx - plugin context carrying settings, systemPrompt, loader, and
- *   optional agentPresets / connection / profileContext services.
+ *   optional agentPresets / connection services.
  */
 export function apply(ctx, config) {
   ctx.effect(() => ctx.settings.configure({ auto: false }, ctx.fiber))
@@ -141,16 +76,6 @@ export function apply(ctx, config) {
     fusedMinimal: fusedMinimalPrompt(),
     /** presetId -> last successfully fused top-level live assembly (the deploy preview). */
     fusedText: new Map(),
-    /** Latest update status snapshot. */
-    update: {
-      state: 'idle',
-      currentVersion: PLUGIN_VERSION,
-      restartRequired: false,
-    },
-    /** In-flight update check promise. */
-    checkingUpdate: null,
-    /** In-flight update installation promise. */
-    performingUpdate: null,
   }
 
   /**
@@ -291,362 +216,7 @@ export function apply(ctx, config) {
     state.fusedText.clear()
   }
 
-  /** Inspect how `dsh-unrestricted` is installed in the active profile. */
-  async function inspectProfileInstall() {
-    const profileContext = ctx.get('profileContext')
-    const profileDir = profileContext?.dir
-    if (typeof profileDir !== 'string' || profileDir === '') {
-      return {
-        profileDir: undefined,
-        profileName: undefined,
-        packageManager: undefined,
-        installSource: 'unknown',
-        dependencySpec: undefined,
-        localSourceDir: undefined,
-      }
-    }
-    const pkg = await readJsonFile(path.join(profileDir, 'package.json'))
-    const spec = pkg?.dependencies?.[name]
-    if (typeof spec !== 'string' || spec === '') {
-      return {
-        profileDir,
-        profileName: profileContext?.name,
-        packageManager: profileContext?.packageManager,
-        installSource: 'unknown',
-        dependencySpec: undefined,
-        localSourceDir: undefined,
-      }
-    }
-    if (spec.startsWith('file:') || spec.startsWith('link:')) {
-      const prefix = spec.startsWith('file:') ? 'file:' : 'link:'
-      const rawTarget = spec.slice(prefix.length)
-      const localSourceDir = path.isAbsolute(rawTarget)
-        ? rawTarget
-        : path.resolve(profileDir, rawTarget)
-      return {
-        profileDir,
-        profileName: profileContext?.name,
-        packageManager: profileContext?.packageManager,
-        installSource: 'file',
-        dependencySpec: spec,
-        localSourceDir,
-      }
-    }
-    if (spec.startsWith('github:') || spec.includes('github.com')) {
-      return {
-        profileDir,
-        profileName: profileContext?.name,
-        packageManager: profileContext?.packageManager,
-        installSource: 'github',
-        dependencySpec: spec,
-        localSourceDir: undefined,
-      }
-    }
-    return {
-      profileDir,
-      profileName: profileContext?.name,
-      packageManager: profileContext?.packageManager,
-      installSource: 'registry',
-      dependencySpec: spec,
-      localSourceDir: undefined,
-    }
-  }
-
-  /** Query GitHub Releases (with raw/jsDelivr fallback) for the latest published version. */
-  async function fetchRemoteRelease() {
-    const headers = {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'dsh-unrestricted',
-    }
-    let lastError
-    try {
-      const response = await fetch(RELEASE_API_URL, {
-        headers,
-        signal: AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS),
-      })
-      if (response.ok) {
-        const data = await response.json()
-        const version = normalizeVersion(data?.tag_name ?? data?.name)
-        if (version !== undefined) {
-          return {
-            latestVersion: version,
-            latestTag: typeof data.tag_name === 'string' && data.tag_name.trim() !== ''
-              ? data.tag_name.trim()
-              : `v${version}`,
-            releaseUrl: typeof data.html_url === 'string' && data.html_url.trim() !== ''
-              ? data.html_url.trim()
-              : `https://github.com/${GITHUB_REPO}/releases/tag/v${version}`,
-            publishedAt: typeof data.published_at === 'string' ? data.published_at : undefined,
-          }
-        }
-      } else {
-        lastError = new Error(`HTTP ${response.status}`)
-      }
-    } catch (error) {
-      lastError = error
-    }
-
-    for (const fallbackUrl of [RAW_PACKAGE_URL, JSDELIVR_PACKAGE_URL]) {
-      try {
-        const response = await fetch(fallbackUrl, {
-          headers: { Accept: 'application/json', 'User-Agent': 'dsh-unrestricted' },
-          signal: AbortSignal.timeout(UPDATE_CHECK_TIMEOUT_MS),
-        })
-        if (!response.ok) {
-          lastError = new Error(`HTTP ${response.status}`)
-          continue
-        }
-        const pkg = await response.json()
-        const version = normalizeVersion(pkg?.version)
-        if (version !== undefined) {
-          return {
-            latestVersion: version,
-            latestTag: `v${version}`,
-            releaseUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${version}`,
-            publishedAt: undefined,
-          }
-        }
-      } catch (error) {
-        lastError = error
-      }
-    }
-
-    throw lastError ?? new Error('Unable to reach GitHub release metadata')
-  }
-
-  /** Check whether a newer version is available from GitHub or the linked local directory. */
-  async function checkUpdate({ force = false } = {}) {
-    if (!force && state.checkingUpdate !== null) {
-      return await state.checkingUpdate
-    }
-    const task = (async () => {
-      const install = await inspectProfileInstall()
-      let localVersion
-      if (install.installSource === 'file' && install.localSourceDir !== undefined) {
-        const localPkg = await readJsonFile(path.join(install.localSourceDir, 'package.json'))
-        localVersion = normalizeVersion(localPkg?.version)
-      }
-
-      let remote = null
-      let remoteError = null
-      try {
-        remote = await fetchRemoteRelease()
-      } catch (error) {
-        remoteError = error
-      }
-
-      if (remote === null && localVersion === undefined) {
-        state.update = {
-          ...state.update,
-          state: 'failed',
-          currentVersion: PLUGIN_VERSION,
-          installSource: install.installSource,
-          dependencySpec: install.dependencySpec,
-          checkedAt: new Date().toISOString(),
-          errorCode: 'update-check-failed',
-          errorDetail: messageOf(remoteError),
-        }
-        return state.update
-      }
-
-      let latestVersion = remote?.latestVersion ?? localVersion
-      let latestTag = remote?.latestTag ?? `v${latestVersion}`
-      if (localVersion !== undefined && (latestVersion === undefined || compareSemver(localVersion, latestVersion) > 0)) {
-        latestVersion = localVersion
-        latestTag = `v${localVersion}`
-      }
-
-      const baselineVersion = state.update.restartRequired && state.update.updatedVersion !== undefined
-        ? state.update.updatedVersion
-        : PLUGIN_VERSION
-      const hasNewer = compareSemver(latestVersion, baselineVersion) > 0
-
-      state.update = {
-        state: hasNewer
-          ? 'available'
-          : state.update.restartRequired
-            ? 'updated'
-            : 'up-to-date',
-        currentVersion: PLUGIN_VERSION,
-        latestVersion,
-        latestTag,
-        releaseUrl: remote?.releaseUrl ?? `https://github.com/${GITHUB_REPO}/releases`,
-        publishedAt: remote?.publishedAt,
-        checkedAt: new Date().toISOString(),
-        installSource: install.installSource,
-        dependencySpec: install.dependencySpec,
-        restartRequired: Boolean(state.update.restartRequired),
-        updatedVersion: state.update.updatedVersion,
-      }
-      return state.update
-    })()
-
-    state.checkingUpdate = task
-    try {
-      return await task
-    } finally {
-      if (state.checkingUpdate === task) {
-        state.checkingUpdate = null
-      }
-    }
-  }
-
-  /** Install the latest version into the active profile and mark restartRequired. */
-  async function performUpdate({ targetTag } = {}) {
-    if (state.performingUpdate !== null) {
-      return await state.performingUpdate
-    }
-    const task = (async () => {
-      const install = await inspectProfileInstall()
-      if (install.profileDir === undefined) {
-        state.update = {
-          ...state.update,
-          state: 'failed',
-          currentVersion: PLUGIN_VERSION,
-          errorCode: 'update-no-profile',
-        }
-        return state.update
-      }
-
-      if (state.update.latestVersion === undefined && targetTag === undefined) {
-        await checkUpdate({ force: true })
-      }
-
-      let targetSpec
-      let expectedVersion = state.update.latestVersion
-
-      if (install.installSource === 'file' && install.localSourceDir !== undefined) {
-        const localPkg = await readJsonFile(path.join(install.localSourceDir, 'package.json'))
-        const localVersion = normalizeVersion(localPkg?.version)
-        if (localVersion === undefined) {
-          state.update = {
-            ...state.update,
-            state: 'failed',
-            currentVersion: PLUGIN_VERSION,
-            installSource: install.installSource,
-            dependencySpec: install.dependencySpec,
-            errorCode: 'update-install-failed',
-            errorDetail: `Cannot read package.json in ${install.localSourceDir}`,
-          }
-          return state.update
-        }
-        if (expectedVersion !== undefined && compareSemver(localVersion, expectedVersion) < 0) {
-          state.update = {
-            ...state.update,
-            state: 'failed',
-            currentVersion: PLUGIN_VERSION,
-            installSource: install.installSource,
-            dependencySpec: install.dependencySpec,
-            errorCode: 'update-file-source-outdated',
-            errorDetail: `${localVersion} < ${expectedVersion}`,
-          }
-          return state.update
-        }
-        targetSpec = install.dependencySpec
-        expectedVersion = localVersion
-      } else {
-        const resolvedTag = typeof targetTag === 'string' && targetTag.trim() !== ''
-          ? targetTag.trim()
-          : (state.update.latestTag ?? (expectedVersion !== undefined ? `v${expectedVersion}` : 'master'))
-        targetSpec = `github:${GITHUB_REPO}#${resolvedTag}`
-        expectedVersion = normalizeVersion(resolvedTag) ?? expectedVersion ?? PLUGIN_VERSION
-      }
-
-      const pkgPath = path.join(install.profileDir, 'package.json')
-      const lockPath = path.join(install.profileDir, 'pnpm-lock.yaml')
-      const backupPkg = await fs.readFile(pkgPath, 'utf8').catch(() => undefined)
-      const backupLock = await fs.readFile(lockPath, 'utf8').catch(() => undefined)
-      const parsedBefore = backupPkg !== undefined ? JSON.parse(backupPkg) : undefined
-      const originalDsh = parsedBefore?.dsh
-
-      try {
-        await runPnpm(install.profileDir, ['add', targetSpec], install.packageManager)
-
-        // Ensure file: installs refresh cached store copies when needed.
-        const installedPkgPath = path.join(install.profileDir, 'node_modules', name, 'package.json')
-        let installedPkg = await readJsonFile(installedPkgPath)
-        let installedVersion = normalizeVersion(installedPkg?.version)
-        if (
-          install.installSource === 'file'
-          && expectedVersion !== undefined
-          && installedVersion !== expectedVersion
-        ) {
-          await runPnpm(install.profileDir, ['remove', name], install.packageManager)
-          await runPnpm(install.profileDir, ['add', targetSpec], install.packageManager)
-          installedPkg = await readJsonFile(installedPkgPath)
-          installedVersion = normalizeVersion(installedPkg?.version)
-        }
-
-        // Preserve dsh.profile.bundles in package.json after pnpm mutations.
-        const afterPkg = await readJsonFile(pkgPath)
-        if (afterPkg !== undefined) {
-          const dshBlock = afterPkg.dsh ?? originalDsh ?? {}
-          const profileBlock = dshBlock.profile ?? originalDsh?.profile ?? {}
-          const bundles = Array.isArray(profileBlock.bundles)
-            ? [...profileBlock.bundles]
-            : Array.isArray(originalDsh?.profile?.bundles)
-              ? [...originalDsh.profile.bundles]
-              : []
-          if (!bundles.includes(name)) bundles.push(name)
-          afterPkg.dsh = {
-            ...originalDsh,
-            ...dshBlock,
-            profile: {
-              ...originalDsh?.profile,
-              ...profileBlock,
-              bundles,
-            },
-          }
-          await fs.writeFile(pkgPath, `${JSON.stringify(afterPkg, null, 2)}\n`, 'utf8')
-        }
-
-        const finalVersion = installedVersion ?? expectedVersion ?? PLUGIN_VERSION
-        state.update = {
-          ...state.update,
-          state: 'updated',
-          currentVersion: PLUGIN_VERSION,
-          latestVersion: finalVersion,
-          latestTag: `v${finalVersion}`,
-          updatedVersion: finalVersion,
-          installSource: install.installSource,
-          dependencySpec: targetSpec,
-          checkedAt: new Date().toISOString(),
-          restartRequired: true,
-          errorCode: undefined,
-          errorDetail: undefined,
-        }
-        return state.update
-      } catch (error) {
-        if (backupPkg !== undefined) {
-          await fs.writeFile(pkgPath, backupPkg, 'utf8').catch(() => {})
-        }
-        if (backupLock !== undefined) {
-          await fs.writeFile(lockPath, backupLock, 'utf8').catch(() => {})
-        }
-        state.update = {
-          ...state.update,
-          state: 'failed',
-          currentVersion: PLUGIN_VERSION,
-          installSource: install.installSource,
-          dependencySpec: install.dependencySpec,
-          errorCode: 'update-install-failed',
-          errorDetail: messageOf(error),
-        }
-        return state.update
-      }
-    })()
-
-    state.performingUpdate = task
-    try {
-      return await task
-    } finally {
-      if (state.performingUpdate === task) {
-        state.performingUpdate = null
-      }
-    }
-  }
-
-  /** Current card view: toggle, version, per-preset state, and update state. */
+  /** Current card view: toggle, version, and per-preset state. */
   function statusPayload() {
     const modes = {}
     for (const presetId of PRESETS) {
@@ -662,7 +232,6 @@ export function apply(ctx, config) {
       enabled: state.enabled,
       version: PLUGIN_VERSION,
       modes,
-      update: state.update,
     }
   }
 
@@ -754,14 +323,6 @@ export function apply(ctx, config) {
         state.fusedText.clear()
         if (state.enabled) sweepAgents()
         return ok(statusPayload())
-      }
-      case 'check-update': {
-        const force = Boolean(payload?.force ?? payload?.args?.force)
-        return ok(await checkUpdate({ force }))
-      }
-      case 'perform-update': {
-        const targetTag = payload?.targetTag ?? payload?.args?.targetTag
-        return ok(await performUpdate({ targetTag }))
       }
       default:
         return {

@@ -82,7 +82,7 @@ The plugin handles each DSH execution preset according to its prompt structure:
 
 ### Structural Fusion & Fallback
 
-The plugin fuses sections structurally by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both the latest DSH Web (`0.2.2-alpha.2`) and DSH Desktop (`0.2.1-rc.5`) without brittle exact-string hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
+The plugin fuses sections structurally by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both the latest DSH Web (`0.2.2-alpha.3`) and DSH Desktop (`0.2.1-rc.5`) without brittle exact-string hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
 
 ### Instant Toggle
 
@@ -94,21 +94,21 @@ The toggle state is saved in the profile's `cordis.patch.yml` and takes effect o
 
 ```sh
 # Install on DSH Web
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
 
 # Install on DSH Desktop
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.6
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.7
 ```
 
 Restart `dsh web` or DSH Desktop after installing, then follow [Usage](#usage) to enable it.
 
 #### Update
 
-You can check and install updates directly from the **Version & Updates** card inside **Plugins → dsh-unrestricted**, or update via CLI:
+Use the update controls in DSH’s built-in plugin manager, or the CLI commands below. The plugin no longer queries GitHub or runs its own pnpm installer.
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.6
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
 ```
 
 Restart `dsh web` or DSH Desktop.
@@ -139,7 +139,6 @@ Make sure both switches are turned on after installation:
 The settings card also provides:
 
 - **Mode Coverage & Prompt Preview**: Shows active status for Standard, PTC, Cordis, and Minimal modes, with expandable full-prompt preview and one-click copy.
-- **Version & Updates**: Automatically checks GitHub Releases for new versions, displays an update badge in the plugin detail header, and supports one-click self-update.
 
 ---
 

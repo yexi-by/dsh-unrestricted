@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  ANCHORS, BLOCK_SECTION, EXECUTION_MODE_BLOCK, PRESETS, compareSemver, contractAdditions,
-  fuseSections, fusedMinimalPrompt, normalizeVersion, renderPreview,
+  ANCHORS, BLOCK_SECTION, EXECUTION_MODE_BLOCK, PRESETS, contractAdditions,
+  fuseSections, fusedMinimalPrompt, renderPreview,
 } from '../src/rules.js'
 
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
@@ -153,17 +153,6 @@ test('structural fusion tolerates upstream wording edits while refusing missing 
 
 test('unknown presets are refused with unsupported-preset', () => {
   assert.deepEqual(fuseSections([], 'my-custom-preset').issues, ['unsupported-preset'])
-})
-
-test('normalizeVersion and compareSemver compare release versions accurately', () => {
-  assert.equal(normalizeVersion('v0.2.6'), '0.2.6')
-  assert.equal(normalizeVersion(' 0.2.6-rc.1+build '), '0.2.6-rc.1')
-  assert.equal(normalizeVersion('invalid'), undefined)
-  assert.equal(compareSemver('0.2.6', '0.2.5'), 1)
-  assert.equal(compareSemver('0.2.6', '0.2.6'), 0)
-  assert.equal(compareSemver('0.2.5', '0.2.6'), -1)
-  assert.equal(compareSemver('0.2.6', '0.2.6-rc.1'), 1)
-  assert.equal(compareSemver('0.2.6-alpha.2', '0.2.6-alpha.1'), 1)
 })
 
 test('minimal fused prompt is persona + pointer + block, anchors intact, and preserves structured_output', () => {

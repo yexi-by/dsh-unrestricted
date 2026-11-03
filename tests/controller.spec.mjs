@@ -14,8 +14,6 @@ async function fixture() {
     status: [],
     recheck: [],
     preview: [],
-    'check-update': [],
-    'perform-update': [],
     write: [],
   }
   function defer(endpoint, payload) {
@@ -138,40 +136,4 @@ test('开关提交立即使旧预览失效，配置事件刷新不能提前结�
   await writing
   assert.equal(f.view().busy, false)
   assert.equal(f.view().status.enabled, false)
-})
-
-test('版本检查与手动更新正确推进状态并透传目标版本', async () => {
-  const f = await fixture()
-  assert.equal(f.view().update.state, 'idle')
-
-  const checking = f.face.checkUpdate(true)
-  assert.equal(f.view().update.state, 'checking')
-  const checkReq = f.take('check-update')
-  assert.deepEqual(checkReq.payload, { force: true })
-  f.answer(checkReq, {
-    state: 'available',
-    currentVersion: '0.2.6',
-    latestVersion: '0.2.7',
-    latestTag: 'v0.2.7',
-    installSource: 'github',
-  })
-  await checking
-  assert.equal(f.view().update.state, 'available')
-  assert.equal(f.view().update.latestVersion, '0.2.7')
-
-  const installing = f.face.performUpdate()
-  assert.equal(f.view().update.state, 'updating')
-  const installReq = f.take('perform-update')
-  assert.deepEqual(installReq.payload, { targetTag: 'v0.2.7' })
-  f.answer(installReq, {
-    state: 'updated',
-    currentVersion: '0.2.6',
-    latestVersion: '0.2.7',
-    updatedVersion: '0.2.7',
-    restartRequired: true,
-    installSource: 'github',
-  })
-  await installing
-  assert.equal(f.view().update.state, 'updated')
-  assert.equal(f.view().update.restartRequired, true)
 })

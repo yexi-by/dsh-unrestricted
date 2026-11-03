@@ -1,8 +1,7 @@
 /**
- * The unrestricted settings view and plugin-detail badge:
+ * The unrestricted settings view:
  * - Master toggle card with native Switch, status Tag, and scope boundary notes
  * - Per-preset coverage list with StateDot, Tag, preview drawer, and one-click copy
- * - Version & Updates card with automatic release check and one-click self-update
  */
 import { useEffect, useState } from 'react'
 import {
@@ -21,19 +20,12 @@ import type {
   UnrestrictedCardInjected,
   UnrestrictedModeState,
   UnrestrictedPreviewEntry,
-  UnrestrictedUpdateInfo,
 } from './controller.ts'
 import type { UnrestrictedLocaleKey } from './locales.ts'
 
 /** Full component props assembled by the Settings slot renderer. */
 export type UnrestrictedCardProps =
   PropsRuntime<'plugins.bundle.config'>
-  & PropsLocale<'settings.unrestricted'>
-  & InjectFace<UnrestrictedCardInjected>
-
-/** Detail badge props assembled by the Plugin Manager header slot renderer. */
-export type UnrestrictedDetailBadgeProps =
-  PropsRuntime<'plugins.detail.badge'>
   & PropsLocale<'settings.unrestricted'>
   & InjectFace<UnrestrictedCardInjected>
 
@@ -107,84 +99,16 @@ function localizePreviewError(
     : t('errorPreviewFailed')
 }
 
-/** Friendly localized text for update errors. */
-function localizeUpdateError(
-  update: UnrestrictedUpdateInfo,
-  t: (key: UnrestrictedLocaleKey) => string,
-): string {
-  switch (update.errorCode) {
-    case 'update-check-failed':
-      return t('errorUpdateCheckFailed')
-    case 'update-no-profile':
-      return t('errorUpdateNoProfile')
-    case 'update-file-source-outdated':
-      return t('errorUpdateFileOutdated')
-    case 'update-install-failed':
-      return `${t('errorUpdateInstallFailed')}${update.errorDetail ?? ''}`
-    default:
-      return update.errorDetail !== undefined && update.errorDetail !== ''
-        ? `${t('operationFailed')}${update.errorDetail}`
-        : t('errorUpdateCheckFailed')
-  }
-}
-
-/** Friendly label for the installation source. */
-function installSourceLabel(
-  source: UnrestrictedUpdateInfo['installSource'],
-  t: (key: UnrestrictedLocaleKey) => string,
-): string {
-  switch (source) {
-    case 'github': return t('sourceGithub')
-    case 'file': return t('sourceFile')
-    case 'registry': return t('sourceRegistry')
-    default: return t('sourceUnknown')
-  }
-}
-
-/**
- * Badge shown in the Plugin Manager detail header when an update is available
- * or waiting for a restart.
- */
-export function UnrestrictedDetailBadge(props: UnrestrictedDetailBadgeProps) {
-  const { subject, t, checkUpdate } = props
-  const update = props.useView(snapshot => snapshot.update)
-  const isTargetBundle = subject.kind === 'bundle' && subject.pkg.name === 'dsh-unrestricted'
-
-  useEffect(() => {
-    if (isTargetBundle && update.state === 'idle') {
-      void checkUpdate(false)
-    }
-  }, [isTargetBundle, update.state, checkUpdate])
-
-  if (!isTargetBundle) return null
-  if (update.state === 'available') {
-    const versionSuffix = update.latestVersion !== undefined ? ` v${update.latestVersion}` : ''
-    return <Tag tone="info">{`${t('updateBadge')}${versionSuffix}`}</Tag>
-  }
-  if (update.state === 'updated' || update.restartRequired === true) {
-    return <Tag tone="success">{t('updateRestartBadge')}</Tag>
-  }
-  return null
-}
-
 /**
  * Render the unrestricted configuration cards.
  */
 export function UnrestrictedCard(props: UnrestrictedCardProps) {
-  const { t, loadPreview, checkUpdate } = props
+  const { t, loadPreview } = props
   const view = props.useView(snapshot => snapshot)
   const status = view.status
-  const update = view.update
   const [openPreview, setOpenPreview] = useState<string | null>(null)
   const [copiedPreset, setCopiedPreset] = useState<string | null>(null)
   const openEntry = openPreview === null ? undefined : view.previews[openPreview]
-
-  // Automatically check for updates once when the configuration view opens.
-  useEffect(() => {
-    if (update.state === 'idle') {
-      void checkUpdate(false)
-    }
-  }, [update.state, checkUpdate])
 
   // When a refresh/toggle invalidates the preview map while a preview drawer
   // is open, automatically reload that preset's preview.
@@ -241,28 +165,8 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
       .join('；')
   }
 
-  const updateBusy = update.state === 'checking' || update.state === 'updating'
-  const updateTagTone: TagTone = update.state === 'available'
-    ? 'info'
-    : update.state === 'updated'
-      ? 'success'
-      : update.state === 'failed'
-        ? 'danger'
-        : 'neutral'
-  const updateTagKey: UnrestrictedLocaleKey = update.state === 'checking'
-    ? 'updateChecking'
-    : update.state === 'updating'
-      ? 'updateInstalling'
-      : update.state === 'available'
-        ? 'updateAvailable'
-        : update.state === 'updated'
-          ? 'updateRestartBadge'
-          : update.state === 'up-to-date'
-            ? 'updateUpToDate'
-            : 'updateIdle'
-
   return (
-    <div className="dsh-unrestricted-root" aria-busy={view.busy || updateBusy}>
+    <div className="dsh-unrestricted-root" aria-busy={view.busy}>
       {/* Card 1: Master Toggle */}
       <section className="dsh-unrestricted-card" aria-labelledby="dsh-unrestricted-main-title">
         <div className="dsh-unrestricted-header">
@@ -387,86 +291,6 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
         <p className="dsh-unrestricted-note">{t('subagentNote')}</p>
       </section>
 
-      {/* Card 3: Version & Updates */}
-      <section className="dsh-unrestricted-card" aria-labelledby="dsh-unrestricted-update-title">
-        <div className="dsh-unrestricted-header">
-          <div className="dsh-unrestricted-headerTitle">
-            <h4 id="dsh-unrestricted-update-title" className="dsh-unrestricted-subtitle">{t('updateTitle')}</h4>
-            {update.state !== 'failed' && (
-              <Tag tone={updateTagTone}>
-                {update.state === 'available' && update.latestVersion !== undefined
-                  ? `${t('updateAvailable')} v${update.latestVersion}`
-                  : t(updateTagKey)}
-              </Tag>
-            )}
-          </div>
-          <div className="dsh-unrestricted-headerControls">
-            {update.releaseUrl !== undefined && (
-              <a
-                className="dsh-unrestricted-link"
-                href={update.releaseUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t('viewRelease')}
-              </a>
-            )}
-            {update.state === 'available' && (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={updateBusy}
-                onClick={() => { void props.performUpdate() }}
-              >
-                {update.latestVersion !== undefined
-                  ? `${t('installUpdate')} (v${update.latestVersion})`
-                  : t('installUpdate')}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={updateBusy}
-              onClick={() => { void props.checkUpdate(true) }}
-            >
-              {t('checkUpdate')}
-            </Button>
-          </div>
-        </div>
-
-        <dl className="dsh-unrestricted-metaGrid">
-          <div className="dsh-unrestricted-metaItem">
-            <dt>{t('currentVersion')}</dt>
-            <dd className="dsh-unrestricted-mono">{`v${update.currentVersion}`}</dd>
-          </div>
-          <div className="dsh-unrestricted-metaItem">
-            <dt>{t('latestVersion')}</dt>
-            <dd className="dsh-unrestricted-mono">
-              {update.latestVersion !== undefined ? `v${update.latestVersion}` : '—'}
-            </dd>
-          </div>
-          <div className="dsh-unrestricted-metaItem">
-            <dt>{t('installSource')}</dt>
-            <dd title={update.dependencySpec}>{installSourceLabel(update.installSource, t)}</dd>
-          </div>
-        </dl>
-
-        {update.state === 'updating' && (
-          <p className="dsh-unrestricted-banner" data-tone="info" role="status">
-            {t('updateInstalling')}
-          </p>
-        )}
-        {(update.state === 'updated' || update.restartRequired === true) && (
-          <p className="dsh-unrestricted-banner" data-tone="success" role="status">
-            {t('updateInstalled')}
-          </p>
-        )}
-        {update.state === 'failed' && (
-          <p className="dsh-unrestricted-banner" data-tone="error" role="alert">
-            {localizeUpdateError(update, t)}
-          </p>
-        )}
-      </section>
     </div>
   )
 }
