@@ -16,6 +16,173 @@
     }
   },
   {
+    "name": "read_image",
+    "description": "Read a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "file_path": {
+          "type": "string",
+          "description": "Path to the image file, resolved by the filesystem backend."
+        }
+      },
+      "required": [
+        "file_path"
+      ]
+    }
+  },
+  {
+    "name": "team_task_create",
+    "description": "Create one unowned pending task on the shared Team task board.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string",
+          "description": "Concise task title."
+        },
+        "description": {
+          "type": "string",
+          "description": "Complete task details and acceptance criteria."
+        },
+        "blocked_by": {
+          "type": "array",
+          "description": "Task ids that must complete first.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_scopes": {
+          "type": "array",
+          "description": "Advisory workspace-relative file or directory prefixes this task expects to modify.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "subject",
+        "description"
+      ]
+    }
+  },
+  {
+    "name": "team_task_get",
+    "description": "Read the complete latest value of one shared task before changing or executing it.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "Shared task id."
+        }
+      },
+      "required": [
+        "task_id"
+      ]
+    }
+  },
+  {
+    "name": "team_task_list",
+    "description": "List shared tasks, including readiness, owner, revision, blockers, and write-scope warnings.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Optional exact status filter.",
+          "enum": [
+            "pending",
+            "in_progress",
+            "completed"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "Optional owner agent name filter; cannot be combined with unowned."
+        },
+        "unowned": {
+          "type": "boolean",
+          "description": "Filter tasks by whether they have no owner; cannot be combined with owner."
+        },
+        "ready": {
+          "type": "boolean",
+          "description": "Optional readiness filter."
+        },
+        "cursor": {
+          "type": "integer",
+          "description": "Zero-based result offset. Defaults to 0."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of rows, 1 through 100. Defaults to 50."
+        }
+      }
+    }
+  },
+  {
+    "name": "team_task_update",
+    "description": "Compare-and-set a shared task action using the latest revision from team_task_get or team_task_list.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "description": "Shared task id."
+        },
+        "expected_revision": {
+          "type": "integer",
+          "description": "Current task revision used as the CAS precondition."
+        },
+        "action": {
+          "type": "string",
+          "description": "Task transition to apply.",
+          "enum": [
+            "claim",
+            "release",
+            "edit",
+            "set_dependencies",
+            "complete",
+            "reopen",
+            "reassign",
+            "delete"
+          ]
+        },
+        "subject": {
+          "type": "string",
+          "description": "Replacement title for edit."
+        },
+        "description": {
+          "type": "string",
+          "description": "Replacement details for edit."
+        },
+        "blocked_by": {
+          "type": "array",
+          "description": "Complete blocker list for set_dependencies.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_scopes": {
+          "type": "array",
+          "description": "Replacement advisory write scopes for edit.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owner": {
+          "type": "string",
+          "description": "Agent name of the root or any continuable descendant for root-only reassign; omit to unassign."
+        }
+      },
+      "required": [
+        "task_id",
+        "expected_revision",
+        "action"
+      ]
+    }
+  },
+  {
     "name": "working_directory",
     "description": "Read the current working directory, or change it with cd. Relative paths use the current directory. Existing shells and running processes keep their own directories.",
     "parameters": {

@@ -82,7 +82,7 @@ The plugin handles each DSH execution preset according to its prompt structure:
 
 ### Structural Fusion & Fallback
 
-The plugin fuses sections structurally by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both the latest DSH Web (`0.2.2-alpha.3`) and DSH Desktop (`0.2.1-rc.5`) without brittle exact-string hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
+The plugin fuses sections structurally by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both the latest DSH Web (`0.2.2-rc.1`) and DSH Desktop (`0.2.1-rc.5`) without brittle exact-string hash checks. If a custom preset omits the persona section, it safely falls back to the stock prompt.
 
 ### Instant Toggle
 
@@ -94,10 +94,10 @@ The toggle state is saved in the profile's `cordis.patch.yml` and takes effect o
 
 ```sh
 # Install on DSH Web
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
 
 # Install on DSH Desktop
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.7
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.8
 ```
 
 Restart `dsh web` or DSH Desktop after installing, then follow [Usage](#usage) to enable it.
@@ -108,7 +108,7 @@ Use the update controls in DSH’s built-in plugin manager, or the CLI commands 
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.7
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
 ```
 
 Restart `dsh web` or DSH Desktop.
