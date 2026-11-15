@@ -82,7 +82,7 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ### 结构化融合与安全回退
 
-插件按 DSH 官方提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行幂等融合，不依赖脆弱的逐字文案哈希校验，兼容最新 DSH Web（`0.2.2-rc.1`）与 DSH Desktop（`0.2.1-rc.5`）。如果自定义模式缺少角色设定段落，对应模式会自动保留原版提示词并在设置页友好提示。
+插件按 DSH 官方提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行幂等融合，不依赖脆弱的逐字文案哈希校验，兼容最新 DSH Web（`0.2.2-rc.3`）与 DSH Desktop（`0.2.1-rc.5`）。如果自定义模式缺少角色设定段落，对应模式会自动保留原版提示词并在设置页友好提示。
 
 ### 即时开关
 
@@ -92,12 +92,19 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ## 安装与更新
 
+使用 Desktop `0.2.1-rc.5` 或官方发布 tag `dsh-v0.2.2-rc.3` 时，请在对应 profile 的 `cordis.patch.yml` 给 `connection` 行补充以下依赖，已有配置保留在同一行。
+
+```yaml
+- id: connection
+  inject: [webStartup, webServer]
+```
+
 ```sh
 # Web 端安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
 
 # 桌面端安装指定版本（使用桌面端内置 CLI）
-"& '$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd' plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.8"
+& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.10
 ```
 
 安装后重启 `dsh web` 或 DSH 桌面端，按下方[使用说明](#使用说明)启用。
@@ -108,7 +115,7 @@ dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
 ```
 
 更新后重启 `dsh web` 或 DSH 桌面端。

@@ -1,6 +1,6 @@
 {
   "name": "dsh-unrestricted",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "engines": {
     "dsh": ">=0.2.0-rc.2 <0.2.3-0"
   },

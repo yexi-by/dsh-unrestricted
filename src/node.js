@@ -37,7 +37,7 @@ import {
 export const name = 'dsh-unrestricted'
 
 /** Current plugin package version. */
-export const PLUGIN_VERSION = '0.2.9'
+export const PLUGIN_VERSION = '0.2.10'
 
 /** Services required by this plugin (all base-backed profiles provide these). */
 export const inject = ['settings', 'systemPrompt', 'loader']
@@ -421,7 +421,7 @@ export function apply(ctx, config) {
   }, 'dsh-unrestricted: toggle lifecycle')
 
   // Web/Desktop 状态通道由官方 Connection 认证；headless 组合无需提供 connection 服务。
-  ctx.inject(['connection'], (connectionCtx) => {
+  ctx.inject(['connection', 'webServer'], (connectionCtx) => {
     const disposeRpc = connectionCtx.connection.rpc.handle(RPC_CHANNEL, handleRpc)
     return async () => {
       await disposeRpc()

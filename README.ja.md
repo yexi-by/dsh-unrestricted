@@ -82,7 +82,7 @@ DSH の各実行モードに合わせてプロンプトセクションを処理�
 
 ### 構造化融合とフォールバック
 
-DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）に基づいて構造的かつ冪等に融合を行うため、最新の DSH Web（`0.2.2-rc.1`）および DSH Desktop（`0.2.1-rc.5`）の双方で安定して動作します。ペルソナセクションが存在しない場合は自動的に標準プロンプトへフォールバックします。
+DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）に基づいて構造的かつ冪等に融合を行うため、最新の DSH Web（`0.2.2-rc.3`）および DSH Desktop（`0.2.1-rc.5`）の双方で安定して動作します。ペルソナセクションが存在しない場合は自動的に標準プロンプトへフォールバックします。
 
 ### 即時切り替え
 
@@ -92,12 +92,19 @@ DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools
 
 ## インストールと更新
 
+Desktop `0.2.1-rc.5` または公式タグ `dsh-v0.2.2-rc.3` を使う場合は、対象プロファイルの `cordis.patch.yml` にある `connection` 行の既存設定を保持し、次の依存関係を追加してください。
+
+```yaml
+- id: connection
+  inject: [webStartup, webServer]
+```
+
 ```sh
 # DSH Web へのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
 
 # DSH Desktop へのインストール
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.8
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.10
 ```
 
 インストール後に `dsh web` または DSH Desktop を再起動し、下記の[使い方](#使い方)に従って有効化します。
@@ -108,7 +115,7 @@ dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.8
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.8
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
 ```
 
 更新後に `dsh web` または DSH Desktop を再起動します。
