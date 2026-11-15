@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
-  "capturedAt": "2026-11-05T09:49:14.276Z",
+  "commit": "39163dd30f703a79079e2d2446545cff3c453738",
+  "capturedAt": "2026-11-15T02:28:14.440Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -36,12 +36,14 @@
         "get_goal",
         "glob",
         "grep",
-        "interrupt_agent",
         "job_kill",
         "job_list",
         "job_output",
         "list_agents",
         "list_subagent_models",
+        "office_convert",
+        "office_recalculate",
+        "office_render",
         "plugin_manager",
         "present",
         "pwsh",
@@ -68,7 +70,7 @@
         "working_directory",
         "write"
       ],
-      "promptBytes": 5155
+      "promptBytes": 4998
     },
     "standard-plan": {
       "sections": [
@@ -103,12 +105,14 @@
         "get_goal",
         "glob",
         "grep",
-        "interrupt_agent",
         "job_kill",
         "job_list",
         "job_output",
         "list_agents",
         "list_subagent_models",
+        "office_convert",
+        "office_recalculate",
+        "office_render",
         "plugin_manager",
         "present",
         "pwsh",
@@ -135,7 +139,7 @@
         "working_directory",
         "write"
       ],
-      "promptBytes": 7519
+      "promptBytes": 7362
     },
     "ptc": {
       "sections": [
@@ -166,7 +170,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 59549
+      "promptBytes": 61394
     },
     "ptc-plan": {
       "sections": [
@@ -197,7 +201,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 61913
+      "promptBytes": 63758
     },
     "cordis": {
       "sections": [
@@ -234,7 +238,6 @@
         "get_goal",
         "glob",
         "grep",
-        "interrupt_agent",
         "job_kill",
         "job_list",
         "job_output",
@@ -266,7 +269,7 @@
         "working_directory",
         "write"
       ],
-      "promptBytes": 5155
+      "promptBytes": 5051
     },
     "cordis-plan": {
       "sections": [
@@ -303,7 +306,6 @@
         "get_goal",
         "glob",
         "grep",
-        "interrupt_agent",
         "job_kill",
         "job_list",
         "job_output",
@@ -335,7 +337,7 @@
         "working_directory",
         "write"
       ],
-      "promptBytes": 7519
+      "promptBytes": 7415
     },
     "minimal": {
       "sections": [
@@ -385,12 +387,14 @@
         "get_goal",
         "glob",
         "grep",
-        "interrupt_agent",
         "job_kill",
         "job_list",
         "job_output",
         "list_agents",
         "list_subagent_models",
+        "office_convert",
+        "office_recalculate",
+        "office_render",
         "plugin_manager",
         "present",
         "pwsh",
@@ -417,7 +421,7 @@
         "working_directory",
         "write"
       ],
-      "promptBytes": 5155
+      "promptBytes": 4998
     }
   }
 }

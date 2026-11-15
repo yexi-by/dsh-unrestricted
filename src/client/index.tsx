@@ -23,7 +23,7 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'configForms']
 
 /** 注册本插件的配置卡片。 */
 export function apply(ctx: Context): void {
-  ensureStyles()
+  ctx.effect(() => ensureStyles(), 'dsh-unrestricted: stylesheet')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-unrestricted: dictionaries')
   const controller = createUnrestrictedController(ctx)
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({

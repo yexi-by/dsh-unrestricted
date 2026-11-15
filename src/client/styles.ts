@@ -241,12 +241,17 @@ const CSS = `
 }
 `
 
-/** Inject the stylesheet once; the tag id doubles as the re-evaluation guard. */
-export function ensureStyles(): void {
-  if (typeof document === 'undefined') return
-  if (document.querySelector('style[data-plugin="dsh-unrestricted"]') !== null) return
+/** Inject the stylesheet once and clean it up when this effect disposes. */
+export function ensureStyles(): () => void {
+  if (typeof document === 'undefined') return () => {}
+  const existing = document.querySelector<HTMLStyleElement>('style[data-plugin="dsh-unrestricted"]')
+  if (existing !== null) {
+    existing.textContent = CSS
+    return () => {}
+  }
   const tag = document.createElement('style')
   tag.dataset.plugin = 'dsh-unrestricted'
   tag.textContent = CSS
   document.head.appendChild(tag)
+  return () => { tag.remove() }
 }
