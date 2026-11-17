@@ -94,10 +94,10 @@ The toggle state is saved in the profile's `cordis.patch.yml` and takes effect o
 
 ```sh
 # Install on DSH Web
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 
 # Install on DSH Desktop
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 Restart `dsh web` or DSH Desktop after installing, then follow [Usage](#usage) to enable it.
@@ -108,7 +108,7 @@ Use the update controls in DSH’s built-in plugin manager, or the CLI commands 
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 Restart `dsh web` or DSH Desktop.

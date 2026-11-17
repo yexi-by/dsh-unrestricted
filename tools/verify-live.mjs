@@ -306,7 +306,7 @@ try {
   check('shared /api status RPC returns 200 ok with current version',
     rpcStatus.status === 200
     && rpcStatus.body?.result?.ok === true
-    && rpcStatus.body.result.value?.version === '0.2.13'
+    && rpcStatus.body.result.value?.version === '0.2.14'
     && rpcStatus.body.result.value?.enabled === true)
   const rpcPreview = await callSharedRpc('preview', { presetId: 'standard' })
   check('shared /api preview RPC returns 200 ok with fused prompt',
@@ -445,11 +445,20 @@ try {
   ]) {
     await updateSettings(combo)
     for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
-      const prompt = await assemblePrompt(await presetAgent(id))
+      const agent = await presetAgent(id)
+      const assembled = await ctx.systemPrompt.assemble({ agent, scope: agent })
+      const refreshed = ctx.systemPrompt.refreshContext(assembled, { agent, scope: agent })
+      const prompt = {
+        text: renderPrompt(refreshed),
+        contexts: JSON.stringify(refreshed.contexts),
+      }
       check(`stripHostIdentity (enabled=${combo.enabled}) removes DeepSeek Harness from ${id} text`,
-        !/DeepSeek Harness/i.test(prompt.text))
-      check(`stripHostIdentity (enabled=${combo.enabled}) removes dev contexts from ${id}`,
-        !prompt.contexts.includes('harness:source') && !prompt.contexts.includes('app:web-surface'))
+        !/DeepSeek Harness/i.test(prompt.text) && !/\bDSH\b/.test(prompt.text))
+      check(`stripHostIdentity (enabled=${combo.enabled}) removes dev & DSH brand contexts from ${id} even after refreshContext`,
+        !prompt.contexts.includes('harness:source')
+        && !prompt.contexts.includes('app:web-surface')
+        && !/DeepSeek Harness/i.test(prompt.contexts)
+        && !/Current DSH file policy/.test(prompt.contexts))
     }
     for (const id of ['standard', 'cordis']) {
       const rpcStrippedPreview = await callSharedRpc('preview', { presetId: id })

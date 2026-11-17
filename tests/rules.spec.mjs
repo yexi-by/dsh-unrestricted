@@ -410,6 +410,7 @@ test('stripHostIdentityFromAssembly drops host identity sections/contexts and sc
     ],
     contexts: [
       { name: 'session:cwd', text: 'cwd' },
+      { name: 'sandbox:policy', text: 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.' },
       { name: 'harness:source', text: 'Current DeepSeek Harness implementation checkout: "D:/work/dsh/deepseek-harness".' },
       { name: 'app:web-surface', text: 'Current DeepSeek Harness Web GUI URL: "http://127.0.0.1:3000".' },
     ],
@@ -425,7 +426,14 @@ test('stripHostIdentityFromAssembly drops host identity sections/contexts and sc
   for (const dropped of HOST_IDENTITY_CONTEXTS) {
     assert.ok(!contextNames.includes(dropped), `expected context dropped: ${dropped}`)
   }
-  assert.deepEqual(contextNames, ['session:cwd'])
+  assert.deepEqual(contextNames, ['session:cwd', 'sandbox:policy:sanitized'])
+  const sandboxCtx = stripped.contexts.find(c => c.name === 'sandbox:policy:sanitized')
+  assert.equal(sandboxCtx.text, 'Current file policy: danger-full-access. The file sandbox does not restrict file modifications by available operations.')
+  assert.ok(!/\bDSH\b/.test(sandboxCtx.text))
+
+  assert.ok(EXECUTION_MODE_BLOCK.includes('Internal reasoning:'))
+  assert.ok(EXECUTION_MODE_BLOCK.includes('Never skip or abbreviate internal thinking'))
+  assert.ok(EXECUTION_MODE_BLOCK.includes('After completing thorough internal thinking, open your visible reply directly with the deliverable'))
 
   const persona = stripped.sections.find(s => s.name === 'deployment:persona-prefix')
   assert.ok(persona.text.includes('{{model}}'), 'template slot must remain intact')

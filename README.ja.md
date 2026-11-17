@@ -94,10 +94,10 @@ DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools
 
 ```sh
 # DSH Web へのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 
 # DSH Desktop へのインストール
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 インストール後に `dsh web` または DSH Desktop を再起動し、下記の[使い方](#使い方)に従って有効化します。
@@ -108,7 +108,7 @@ dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.13
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 更新後に `dsh web` または DSH Desktop を再起動します。

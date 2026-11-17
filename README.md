@@ -94,10 +94,10 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ```sh
 # Web 端安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 
 # 桌面端安装指定版本（使用桌面端内置 CLI）
-& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.13
+& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 安装后重启 `dsh web` 或 DSH 桌面端，按下方[使用说明](#使用说明)启用。
@@ -108,7 +108,7 @@ dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.14
 ```
 
 更新后重启 `dsh web` 或 DSH 桌面端。
