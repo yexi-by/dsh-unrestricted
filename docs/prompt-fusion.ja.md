@@ -72,7 +72,7 @@ DSH の各実行モードに応じてプロンプトセクションを処理し�
 組み立て時には DSH の標準セクション名（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）に基づいて冪等に融合を行うため、文面のハッシュ照合に依存せず DSH Web と DSH Desktop の双方で安定して動作します。`extraPresets` 設定で追加のプリセット名にも対応し、ペルソナセクションがない場合は自動的に標準プロンプトへフォールバックします。
 
 ### ホストブランド識別子の除去（オプション）
-**ホストブランド識別子の非表示**（`stripHostIdentity`）を有効にすると、`harness:identity`・`harness:source`・`app:web-surface` セクションおよび対応する実行時コンテキストを除去し、残存セクション内の `DeepSeek Harness` / `DSH` 表記を中立的な表現へ置換します（メインスイッチとは独立して動作します）。
+**ホストブランド識別子の非表示**（`stripHostIdentity`）を有効にすると、`harness:identity`・`harness:source`・`app:web-surface` セクションおよび対応する実行時コンテキストを除去し、残存セクション内の `DeepSeek Harness` / `DSH` 表記を中立的な表現へ置換します（メインスイッチとは独立して動作し、Google Antigravity リバースプロキシや Google AI Studio PG チャネルなどのサードパーティ経路における `429` クライアント検知の回避に適しています）。
 
 ### プロンプトプレビュー
 設定画面から RPC エンドポイントを通じて各モードのシステムプロンプト全文、総行数、サイズを基準スコープから都度プレビューできます（識別子除去スイッチも反映されます）。バージョン確認とインストールには DSH 標準のプラグイン管理画面を使用します。

@@ -306,7 +306,7 @@ try {
   check('shared /api status RPC returns 200 ok with current version',
     rpcStatus.status === 200
     && rpcStatus.body?.result?.ok === true
-    && rpcStatus.body.result.value?.version === '0.2.12'
+    && rpcStatus.body.result.value?.version === '0.2.13'
     && rpcStatus.body.result.value?.enabled === true)
   const rpcPreview = await callSharedRpc('preview', { presetId: 'standard' })
   check('shared /api preview RPC returns 200 ok with fused prompt',

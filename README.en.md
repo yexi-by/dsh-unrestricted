@@ -94,10 +94,10 @@ The toggle state is saved in the profile's `cordis.patch.yml` and takes effect o
 
 ```sh
 # Install on DSH Web
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.12
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
 
 # Install on DSH Desktop
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.12
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.13
 ```
 
 Restart `dsh web` or DSH Desktop after installing, then follow [Usage](#usage) to enable it.
@@ -108,7 +108,7 @@ Use the update controls in DSH’s built-in plugin manager, or the CLI commands 
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.12
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.13
 ```
 
 Restart `dsh web` or DSH Desktop.
@@ -138,7 +138,7 @@ Make sure both switches are turned on after installation:
 
 The settings card also provides:
 
-- **Strip Host Brand Identity**: An independent option that removes `DeepSeek Harness` / `DSH` identity sections and Web GUI checkout context from assembled prompts to reduce upstream proxy client-fingerprinting blocks.
+- **Strip Host Brand Identity**: An independent option that removes `DeepSeek Harness` / `DSH` identity sections and Web GUI checkout context from assembled prompts, preventing HTTP `429` client-fingerprinting blocks on third-party routes (applicable to Google Antigravity reverse proxies, Google AI Studio PG channels, etc.).
 - **Mode Coverage & Prompt Preview**: Shows active status for Standard, PTC, Cordis, and Minimal modes, with expandable full-prompt preview and one-click copy.
 
 ---

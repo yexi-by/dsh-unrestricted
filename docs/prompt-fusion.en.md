@@ -72,7 +72,7 @@ Each DSH preset structures its prompt sections differently:
 During assembly, the plugin locates and fuses prompt sections by DSH's canonical section names (`deployment:persona-prefix`, `plan:policy`, `tools:ptc-only`, `tool:structured_output`) with idempotency guards, supporting both DSH Web and DSH Desktop without brittle exact-string or hash checks. Additional preset ids can be opted in via `extraPresets`; if a preset omits the persona section, it safely falls back to the stock prompt.
 
 ### Host Brand Identity Stripping (Optional)
-When **Strip host brand identity** (`stripHostIdentity`) is enabled, the pipeline drops `harness:identity`, `harness:source`, and `app:web-surface` sections plus matching runtime contexts, and neutralizes residual `DeepSeek Harness` / `DSH` brand strings in retained sections (works independently of the main toggle).
+When **Strip host brand identity** (`stripHostIdentity`) is enabled, the pipeline drops `harness:identity`, `harness:source`, and `app:web-surface` sections plus matching runtime contexts, and neutralizes residual `DeepSeek Harness` / `DSH` brand strings in retained sections (works independently of the main toggle; useful for avoiding HTTP `429` client-fingerprinting blocks on third-party routes such as Google Antigravity reverse proxies and Google AI Studio PG channels).
 
 ### Prompt preview
 The settings UI queries an RPC endpoint to assemble live baseline previews of the full system prompt, line count, and byte size for each mode (reflecting the strip-identity toggle). Version checks and installation use DSH’s built-in plugin manager.
