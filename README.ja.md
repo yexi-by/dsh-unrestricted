@@ -92,19 +92,12 @@ DSH のセクション名（`deployment:persona-prefix`、`plan:policy`、`tools
 
 ## インストールと更新
 
-Desktop `0.2.1-rc.5` または公式タグ `dsh-v0.2.2-rc.3` を使う場合は、対象プロファイルの `cordis.patch.yml` にある `connection` 行の既存設定を保持し、次の依存関係を追加してください。
-
-```yaml
-- id: connection
-  inject: [webStartup, webServer]
-```
-
 ```sh
 # DSH Web へのインストール
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.11
 
 # DSH Desktop へのインストール
-dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.10
+dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.11
 ```
 
 インストール後に `dsh web` または DSH Desktop を再起動し、下記の[使い方](#使い方)に従って有効化します。
@@ -115,7 +108,7 @@ dsh plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.10
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.10
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.11
 ```
 
 更新後に `dsh web` または DSH Desktop を再起動します。

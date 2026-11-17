@@ -32,17 +32,17 @@ import {
   fusedMinimalPrompt,
   renderPreview,
 } from './rules.js'
+import { registerRpcRoutes } from './rpc.js'
 
 /** Cordis plugin name used by Loader diagnostics. */
 export const name = 'dsh-unrestricted'
 
 /** Current plugin package version. */
-export const PLUGIN_VERSION = '0.2.10'
+export const PLUGIN_VERSION = '0.2.11'
 
 /** Services required by this plugin (all base-backed profiles provide these). */
 export const inject = ['settings', 'systemPrompt', 'loader']
 
-const RPC_CHANNEL = '/dsh-unrestricted'
 export const Config = z.object({
   enabled: z.boolean().default(false),
 }).default({ enabled: false }).volatile()
@@ -420,11 +420,8 @@ export function apply(ctx, config) {
     }
   }, 'dsh-unrestricted: toggle lifecycle')
 
-  // Web/Desktop 状态通道由官方 Connection 认证；headless 组合无需提供 connection 服务。
-  ctx.inject(['connection', 'webServer'], (connectionCtx) => {
-    const disposeRpc = connectionCtx.connection.rpc.handle(RPC_CHANNEL, handleRpc)
-    return async () => {
-      await disposeRpc()
-    }
+  // 挂载到 Connection 自有的 /api 共享通道下，无需依赖 connection 自身注入 webServer。
+  ctx.inject(['connection'], (connectionCtx) => {
+    return registerRpcRoutes(connectionCtx.connection, handleRpc)
   })
 }

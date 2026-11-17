@@ -28,7 +28,15 @@ async function fixture() {
     set: (field, next) => defer('write', { field, next }),
   }
   const ctx = {
-    get: () => ({ rpc: { call: (_channel, endpoint, payload) => defer(endpoint, payload) } }),
+    get: () => ({
+      rpc: {
+        call: (channel, method, payload) => {
+          assert.equal(channel, '/api')
+          assert.match(method, /^dsh-unrestricted\//)
+          return defer(method.slice('dsh-unrestricted/'.length), payload)
+        },
+      },
+    }),
     configForms: { get: () => settings },
     remote: { $on(event, listener) { events.set(event, listener); return () => events.delete(event) } },
     effect: effect => effect(),
