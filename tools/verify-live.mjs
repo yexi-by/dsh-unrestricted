@@ -152,8 +152,12 @@ async function assemblePrompt(agent) {
   }
 }
 
+async function updateSettings(patch) {
+  await ctx.settings.update('unrestricted', patch)
+}
+
 async function setEnabled(enabled) {
-  await ctx.settings.update('unrestricted', { enabled })
+  await updateSettings({ enabled })
 }
 
 /** 用原生子代理组合和作用域工具注册复现 Minimal 的角色及报告协议。 */
@@ -302,7 +306,7 @@ try {
   check('shared /api status RPC returns 200 ok with current version',
     rpcStatus.status === 200
     && rpcStatus.body?.result?.ok === true
-    && rpcStatus.body.result.value?.version === '0.2.11'
+    && rpcStatus.body.result.value?.version === '0.2.12'
     && rpcStatus.body.result.value?.enabled === true)
   const rpcPreview = await callSharedRpc('preview', { presetId: 'standard' })
   check('shared /api preview RPC returns 200 ok with fused prompt',
@@ -434,8 +438,31 @@ try {
     check(`${id} preview carries the contract`, text.includes(rules.EXECUTION_MODE_BLOCK))
   }
 
+  console.log('strip host identity')
+  for (const combo of [
+    { enabled: true, stripHostIdentity: true },
+    { enabled: false, stripHostIdentity: true },
+  ]) {
+    await updateSettings(combo)
+    for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
+      const prompt = await assemblePrompt(await presetAgent(id))
+      check(`stripHostIdentity (enabled=${combo.enabled}) removes DeepSeek Harness from ${id} text`,
+        !/DeepSeek Harness/i.test(prompt.text))
+      check(`stripHostIdentity (enabled=${combo.enabled}) removes dev contexts from ${id}`,
+        !prompt.contexts.includes('harness:source') && !prompt.contexts.includes('app:web-surface'))
+    }
+    for (const id of ['standard', 'cordis']) {
+      const rpcStrippedPreview = await callSharedRpc('preview', { presetId: id })
+      check(`stripHostIdentity (enabled=${combo.enabled}) strips DeepSeek Harness from ${id} preview RPC`,
+        rpcStrippedPreview.status === 200
+        && rpcStrippedPreview.body?.result?.ok === true
+        && rpcStrippedPreview.body.result.value?.available === true
+        && !/DeepSeek Harness/i.test(rpcStrippedPreview.body.result.value.text))
+    }
+  }
+
   console.log('toggle off')
-  await setEnabled(false)
+  await updateSettings({ enabled: false, stripHostIdentity: false })
   for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
     const off = await until(`${id} restore`, async () => {
       const prompt = await assemblePrompt(await presetAgent(id))

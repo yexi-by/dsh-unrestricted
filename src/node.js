@@ -31,6 +31,7 @@ import {
   fuseSections,
   fusedMinimalPrompt,
   renderPreview,
+  stripHostIdentityFromAssembly,
 } from './rules.js'
 import { registerRpcRoutes } from './rpc.js'
 
@@ -38,14 +39,16 @@ import { registerRpcRoutes } from './rpc.js'
 export const name = 'dsh-unrestricted'
 
 /** Current plugin package version. */
-export const PLUGIN_VERSION = '0.2.11'
+export const PLUGIN_VERSION = '0.2.12'
 
 /** Services required by this plugin (all base-backed profiles provide these). */
 export const inject = ['settings', 'systemPrompt', 'loader']
 
 export const Config = z.object({
   enabled: z.boolean().default(false),
-}).default({ enabled: false }).volatile()
+  stripHostIdentity: z.boolean().default(false),
+  extraPresets: z.array(z.string()).default([]),
+}).default({ enabled: false, stripHostIdentity: false, extraPresets: [] }).volatile()
 
 /** Human-readable error text for diagnostics and RPC error branches. */
 function messageOf(error) {
@@ -64,8 +67,11 @@ function ok(value) {
 export function apply(ctx, config) {
   ctx.effect(() => ctx.settings.configure({ auto: false }, ctx.fiber))
 
+  const initialConfig = config.get()
   const state = {
-    enabled: config.get().enabled,
+    enabled: Boolean(initialConfig.enabled),
+    stripHostIdentity: Boolean(initialConfig.stripHostIdentity),
+    extraPresets: new Set(initialConfig.extraPresets ?? []),
     /** presetId -> issue codes observed on live assemblies. */
     runtime: new Map(),
     /** Agent -> section disposer for minimal persona shadows. */
@@ -74,8 +80,10 @@ export function apply(ctx, config) {
     customMinimal: new WeakSet(),
     /** Precomputed fused minimal prompt. */
     fusedMinimal: fusedMinimalPrompt(),
-    /** presetId -> last successfully fused top-level live assembly (the deploy preview). */
-    fusedText: new Map(),
+  }
+
+  function isSupportedPreset(presetId) {
+    return Boolean(PRESET_RULES[presetId]) || state.extraPresets.has(presetId)
   }
 
   /**
@@ -186,7 +194,6 @@ export function apply(ctx, config) {
       return
     }
     state.shadows.set(agent, dispose)
-    state.fusedText.set('minimal', state.fusedMinimal)
   }
 
   /** Synchronize minimal persona shadows across all live agents. */
@@ -213,10 +220,9 @@ export function apply(ctx, config) {
   function onDisable() {
     clearShadows()
     state.runtime.clear()
-    state.fusedText.clear()
   }
 
-  /** Current card view: toggle, version, and per-preset state. */
+  /** Current card view: toggle, stripHostIdentity flag, version, and per-preset state. */
   function statusPayload() {
     const modes = {}
     for (const presetId of PRESETS) {
@@ -230,6 +236,7 @@ export function apply(ctx, config) {
     }
     return {
       enabled: state.enabled,
+      stripHostIdentity: state.stripHostIdentity,
       version: PLUGIN_VERSION,
       modes,
     }
@@ -270,7 +277,7 @@ export function apply(ctx, config) {
    * live fusion uses. Read-only — never mutates prompt state.
    */
   async function previewFor(presetId) {
-    if (!PRESETS.includes(presetId)) {
+    if (!isSupportedPreset(presetId)) {
       return {
         presetId,
         available: false,
@@ -278,25 +285,33 @@ export function apply(ctx, config) {
         reason: `unknown preset "${presetId}"`,
       }
     }
-    const cached = state.fusedText.get(presetId)
-    if (cached !== undefined) {
-      return { presetId, available: true, source: 'live', ...summarize(cached) }
-    }
     try {
       const assembly = await presetAssembly(presetId)
-      const fused = presetId === 'minimal'
-        ? { sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt() }] }
-        : fuseSections(assembly.sections, presetId)
-      if (fused.issues !== undefined) {
-        return {
-          presetId,
-          available: false,
-          errorCode: 'missing-persona',
-          reason: fused.issues.join('; '),
+      let previewAssembly
+      if (presetId === 'minimal') {
+        previewAssembly = {
+          ...assembly,
+          sections: [{ name: 'deployment:persona-prefix', text: fusedMinimalPrompt() }],
         }
+      } else {
+        const fused = fuseSections(assembly.sections, presetId, {
+          allowDynamicPreset: state.extraPresets.has(presetId),
+        })
+        if (fused.issues !== undefined) {
+          return {
+            presetId,
+            available: false,
+            errorCode: 'missing-persona',
+            reason: fused.issues.join('; '),
+          }
+        }
+        previewAssembly = { ...assembly, sections: fused.sections }
       }
-      const variables = { ...assembly.variables, ...previewVariables() }
-      const text = renderPreview({ ...assembly, sections: fused.sections, variables }, renderPrompt)
+      if (state.stripHostIdentity) {
+        previewAssembly = stripHostIdentityFromAssembly(previewAssembly)
+      }
+      const variables = { ...previewAssembly.variables, ...previewVariables() }
+      const text = renderPreview({ ...previewAssembly, variables }, renderPrompt)
       return { presetId, available: true, source: 'standing', ...summarize(text) }
     } catch (error) {
       return {
@@ -320,7 +335,6 @@ export function apply(ctx, config) {
       }
       case 'recheck': {
         state.runtime.clear()
-        state.fusedText.clear()
         if (state.enabled) sweepAgents()
         return ok(statusPayload())
       }
@@ -338,49 +352,54 @@ export function apply(ctx, config) {
 
   ctx.on('system-prompt/assemble', async (assembly, context, next) => {
     const original = await next()
-    if (!state.enabled) return original
+    if (!state.enabled && !state.stripHostIdentity) return original
     const agent = context.agent
     if (agent === undefined) return original
     const presetId = resolveAgentPreset(agent, original.sections)
-    if (presetId === undefined || !PRESET_RULES[presetId]) {
+    if (presetId === undefined || !isSupportedPreset(presetId)) {
       unshadowMinimal(agent)
       return original
     }
+
+    let current = original
+
     if (presetId === 'minimal') {
-      if (state.shadows.has(agent)) {
-        state.fusedText.set('minimal', state.fusedMinimal)
-        return original
-      }
-      syncMinimalShadow(agent)
-      if (state.customMinimal.has(agent)) {
-        const fused = fuseSections(original.sections, 'minimal', { isSubagent: true })
-        if (fused.issues !== undefined) {
-          state.runtime.set('minimal', fused.issues)
-          return original
+      if (state.enabled) {
+        if (!state.shadows.has(agent)) syncMinimalShadow(agent)
+        if (state.customMinimal.has(agent)) {
+          const fused = fuseSections(current.sections, 'minimal', { isSubagent: true })
+          if (fused.issues !== undefined) {
+            state.runtime.set('minimal', fused.issues)
+            return state.stripHostIdentity ? stripHostIdentityFromAssembly(current) : current
+          }
+          state.runtime.delete('minimal')
+          current = { ...current, sections: fused.sections }
         }
-        state.runtime.delete('minimal')
-        return { ...original, sections: fused.sections }
+      } else if (state.shadows.has(agent)) {
+        unshadowMinimal(agent)
       }
-      return original
+      return state.stripHostIdentity ? stripHostIdentityFromAssembly(current) : current
     }
+
     if (state.shadows.has(agent)) {
       unshadowMinimal(agent)
     }
-    const isSubagent = original.contexts.some(entry => entry.name === 'subagent:delegation')
-    const fused = fuseSections(original.sections, presetId, { isSubagent })
-    if (fused.issues !== undefined) {
-      state.runtime.set(presetId, fused.issues)
-      return original
-    }
-    state.runtime.delete(presetId)
-    if (!isSubagent) {
-      try {
-        state.fusedText.set(presetId, renderPreview({ ...original, sections: fused.sections }, renderPrompt))
-      } catch {
-        state.fusedText.delete(presetId)
+
+    if (state.enabled) {
+      const isSubagent = current.contexts.some(entry => entry.name === 'subagent:delegation')
+      const fused = fuseSections(current.sections, presetId, {
+        isSubagent,
+        allowDynamicPreset: state.extraPresets.has(presetId),
+      })
+      if (fused.issues !== undefined) {
+        state.runtime.set(presetId, fused.issues)
+        return state.stripHostIdentity ? stripHostIdentityFromAssembly(current) : current
       }
+      state.runtime.delete(presetId)
+      current = { ...current, sections: fused.sections }
     }
-    return { ...original, sections: fused.sections }
+
+    return state.stripHostIdentity ? stripHostIdentityFromAssembly(current) : current
   })
 
   ctx.on('agent/created', ({ agent }) => {
@@ -406,7 +425,10 @@ export function apply(ctx, config) {
 
   ctx.effect(() => {
     const unwatch = ctx.on('loader/volatile-update', () => {
-      const enabled = config.get().enabled
+      const nextConfig = config.get()
+      const enabled = Boolean(nextConfig.enabled)
+      state.stripHostIdentity = Boolean(nextConfig.stripHostIdentity)
+      state.extraPresets = new Set(nextConfig.extraPresets ?? [])
       if (enabled === state.enabled) return
       state.enabled = enabled
       if (enabled) onEnable()

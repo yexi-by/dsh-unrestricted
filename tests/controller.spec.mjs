@@ -55,7 +55,12 @@ async function fixture() {
     view: () => face.hooks.view.getSnapshot(),
     documentUpdated: () => events.get('settings/document-updated')('unrestricted'),
     commitEnabled(enabled) {
-      value = { enabled }
+      value = { ...value, enabled }
+      for (const listener of subscribers) listener()
+      events.get('settings/document-updated')('unrestricted')
+    },
+    commitSettings(patch) {
+      value = { ...value, ...patch }
       for (const listener of subscribers) listener()
       events.get('settings/document-updated')('unrestricted')
     },
@@ -144,4 +149,28 @@ test('开关提交立即使旧预览失效，配置事件刷新不能提前结�
   await writing
   assert.equal(f.view().busy, false)
   assert.equal(f.view().status.enabled, false)
+})
+
+test('切换隐藏宿主品牌标识立即使旧预览失效并在提交后同步状态', async () => {
+  const f = await fixture()
+  const preview = f.face.loadPreview('standard')
+  f.answer(f.take('preview'), { available: true, text: 'with brand' })
+  await preview
+  assert.equal(f.view().previews.standard.preview.text, 'with brand')
+  assert.equal(f.view().stripHostIdentity, false)
+
+  const writing = f.face.setStripHostIdentity(true)
+  const writeRequest = f.take('write')
+  assert.deepEqual(writeRequest.payload, { field: 'stripHostIdentity', next: true })
+  f.commitSettings({ stripHostIdentity: true })
+  assert.equal(f.view().stripHostIdentity, true)
+  assert.equal(f.view().previews.standard, undefined)
+
+  f.answer(f.take('status'), { ...status('0.2.12', true), stripHostIdentity: true })
+  writeRequest.resolve(true)
+  await settle()
+  f.answer(f.take('status'), { ...status('0.2.12', true), stripHostIdentity: true })
+  await writing
+  assert.equal(f.view().busy, false)
+  assert.equal(f.view().status.stripHostIdentity, true)
 })

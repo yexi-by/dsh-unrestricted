@@ -69,10 +69,13 @@ DSH 不同运行模式下的提示词分块结构不同，插件分别处理如�
 ## 4. 结构化融合与状态预览
 
 ### 结构化段落融合
-每次组装时，插件按 DSH 官方系统提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行定位与幂等融合，不依赖脆弱的逐字文本比对或哈希校验，同时兼容 DSH Web 与 DSH 桌面端。若自定义模式不包含角色设定段落，则自动保留官方原版提示词并在设置界面提示。
+每次组装时，插件按 DSH 官方系统提示词的结构化段落名称（`deployment:persona-prefix`、`plan:policy`、`tools:ptc-only`、`tool:structured_output`）进行定位与幂等融合，不依赖脆弱的逐字文本比对或哈希校验，同时兼容 DSH Web 与 DSH 桌面端。可通过 `extraPresets` 配置扩展预设名称支持动态按结构融合；若目标预设不包含角色设定段落，则自动保留官方原版提示词并在设置界面提示。
+
+### 宿主品牌标识剥离（可选）
+启用「隐藏宿主品牌标识（`stripHostIdentity`）」后，流水线会移除 `harness:identity`、`harness:source`、`app:web-surface` 分块以及对应运行时上下文，并将残留分块中的 `DeepSeek Harness`、`DSH` 等宿主品牌字眼替换为中性表述（可独立于破限主开关生效）。
 
 ### 提示词预览
-前端设置卡片通过 RPC 接口预览各运行模式组装后的完整系统提示词、总行数与体积。版本检查和安装统一使用 DSH 原生插件管理页。
+前端设置卡片通过 RPC 接口实时按基准作用域生成各运行模式组装后的完整系统提示词、总行数与体积预览（并同步反映去标识开关状态）。版本检查和安装统一使用 DSH 原生插件管理页。
 
 ---
 

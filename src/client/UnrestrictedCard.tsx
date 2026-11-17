@@ -173,6 +173,9 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
           <div className="dsh-unrestricted-headerTitle">
             <h3 id="dsh-unrestricted-main-title" className="dsh-unrestricted-title">{t('title')}</h3>
             <Tag tone={summaryTone}>{t(summaryKey)}</Tag>
+            {view.settingsStatus === 'ready' && view.stripHostIdentity && (
+              <Tag tone="outline">{t('stripHostBadge')}</Tag>
+            )}
           </div>
           <div className="dsh-unrestricted-headerControls">
             <span className="dsh-unrestricted-switchLabel">{t('toggle')}</span>
@@ -186,6 +189,18 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
         </div>
         <p className="dsh-unrestricted-description">{t('description')}</p>
         <p className="dsh-unrestricted-note">{t('scopeNote')}</p>
+        <div className="dsh-unrestricted-optionRow">
+          <div className="dsh-unrestricted-optionCopy">
+            <span className="dsh-unrestricted-modeName">{t('stripHostTitle')}</span>
+            <p className="dsh-unrestricted-note">{t('stripHostDesc')}</p>
+          </div>
+          <Switch
+            checked={view.stripHostIdentity}
+            disabled={!view.writable || view.settingsStatus !== 'ready' || view.busy}
+            label={t('stripHostTitle')}
+            onChange={(checked) => { void props.setStripHostIdentity(checked) }}
+          />
+        </div>
         {view.settingsStatus === 'loading' && (
           <p className="dsh-unrestricted-note" role="status">{t('settingsLoading')}</p>
         )}

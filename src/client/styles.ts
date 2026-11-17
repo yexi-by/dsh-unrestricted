@@ -87,6 +87,23 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary);
 }
 
+.dsh-unrestricted-optionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
+}
+
+.dsh-unrestricted-optionCopy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .dsh-unrestricted-banner {
   margin: 0;
   border: 1px solid var(--dsw-alias-border-l2);

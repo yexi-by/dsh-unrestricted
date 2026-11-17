@@ -94,10 +94,10 @@ DSH 发起请求时会先组装全局系统提示词（System Prompt）。在普
 
 ```sh
 # Web 端安装指定版本
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.11
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.12
 
 # 桌面端安装指定版本（使用桌面端内置 CLI）
-& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.11
+& "$env:LOCALAPPDATA\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add github:yexi-by/dsh-unrestricted#v0.2.12
 ```
 
 安装后重启 `dsh web` 或 DSH 桌面端，按下方[使用说明](#使用说明)启用。
@@ -108,7 +108,7 @@ dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.11
 
 ```sh
 dsh plugin --profile web remove dsh-unrestricted
-dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.11
+dsh plugin --profile web add github:yexi-by/dsh-unrestricted#v0.2.12
 ```
 
 更新后重启 `dsh web` 或 DSH 桌面端。
@@ -138,6 +138,7 @@ dsh plugin --profile web add file:D:/work/dsh/plugin/unrestricted
 
 设置卡片中同时提供：
 
+- **隐藏宿主品牌标识**：独立于破限主开关的去指纹选项，开启后自动移除系统提示词与运行时上下文中的 `DeepSeek Harness` / `DSH` 身份段落及开发界面路径，减少上游反代触发客户端特征检测。
 - **模式覆盖与提示词预览**：显示 Standard、PTC、Cordis、Minimal 四种模式的生效状态，支持展开查看或一键复制各模式最终生成的完整系统提示词。
 
 ---

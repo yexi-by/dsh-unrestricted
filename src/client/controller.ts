@@ -12,6 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 /** The toggle section stored in the `unrestricted` settings namespace. */
 export interface UnrestrictedSettings {
   enabled?: boolean
+  stripHostIdentity?: boolean
 }
 
 /** Per-preset fusion state reported by the host half. */
@@ -23,6 +24,7 @@ export interface UnrestrictedModeState {
 /** Host status endpoint payload. */
 export interface UnrestrictedStatus {
   enabled: boolean
+  stripHostIdentity?: boolean
   /** Current plugin version reported by the host half. */
   version?: string
   modes: Record<string, UnrestrictedModeState>
@@ -56,6 +58,8 @@ export interface UnrestrictedPreviewEntry {
 export interface UnrestrictedViewSnapshot {
   /** Persisted toggle; false until the settings scope first syncs. */
   enabled: boolean
+  /** Persisted host-brand stripping toggle; false until synced. */
+  stripHostIdentity: boolean
   /** Whether the Host document accepts writes. */
   writable: boolean
   /** Settings scope sync state. */
@@ -87,6 +91,8 @@ export interface UnrestrictedCardInjected {
   }
   /** Persist the toggle. */
   setEnabled: (enabled: boolean) => Promise<void>
+  /** Persist whether host identity branding is stripped from prompts. */
+  setStripHostIdentity: (strip: boolean) => Promise<void>
   /** Re-validate runtime state and refresh. */
   recheck: () => Promise<void>
   /** Re-read host status and invalidate cached previews. */
@@ -115,6 +121,7 @@ export function createUnrestrictedController(ctx: Context) {
 
   let snapshot: UnrestrictedViewSnapshot = {
     enabled: false,
+    stripHostIdentity: false,
     writable: false,
     settingsStatus: 'loading',
     status: null,
@@ -137,9 +144,13 @@ export function createUnrestrictedController(ctx: Context) {
   function publish(): void {
     const settingsSnapshot = settings.getSnapshot()
     const enabled = settingsSnapshot.value?.enabled === true
-    if (enabled !== snapshot.enabled) invalidatePreviews()
+    const stripHostIdentity = settingsSnapshot.value?.stripHostIdentity === true
+    if (enabled !== snapshot.enabled || stripHostIdentity !== snapshot.stripHostIdentity) {
+      invalidatePreviews()
+    }
     snapshot = {
       enabled,
+      stripHostIdentity,
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
@@ -199,15 +210,26 @@ export function createUnrestrictedController(ctx: Context) {
     return readStatus('status', clearPreviews)
   }
 
-  function setEnabled(enabled: boolean): Promise<void> {
+  function updateSetting<K extends keyof UnrestrictedSettings>(
+    field: K,
+    value: NonNullable<UnrestrictedSettings[K]>,
+  ): Promise<void> {
     return whileBusy(async () => {
       try {
-        await settings.set('enabled', enabled)
+        await settings.set(field, value)
         await refresh(true)
       } catch (error) {
         snapshot = { ...snapshot, message: messageOf(error) }
       }
     })
+  }
+
+  function setEnabled(enabled: boolean): Promise<void> {
+    return updateSetting('enabled', enabled)
+  }
+
+  function setStripHostIdentity(strip: boolean): Promise<void> {
+    return updateSetting('stripHostIdentity', strip)
   }
 
   function recheck(): Promise<void> {
@@ -267,6 +289,7 @@ export function createUnrestrictedController(ctx: Context) {
     face: (): UnrestrictedCardInjected => ({
       hooks: { view },
       setEnabled,
+      setStripHostIdentity,
       recheck,
       refresh: () => refresh(true),
       loadPreview,
