@@ -1,7 +1,7 @@
 {
   "fixtureCwd": "/workspace/dsh-unrestricted",
-  "commit": "39163dd30f703a79079e2d2446545cff3c453738",
-  "capturedAt": "2026-11-15T02:28:14.440Z",
+  "commit": "ca33fd6843b205e279c7ccb6cb73a472c78f5760",
+  "capturedAt": "2026-11-18T11:34:45.082Z",
   "dumps": {
     "standard": {
       "sections": [
@@ -30,6 +30,7 @@
       ],
       "tools": [
         "ask_user_question",
+        "cordis_inspect",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -67,7 +68,6 @@
         "web_fetch",
         "web_search",
         "workflow",
-        "working_directory",
         "write"
       ],
       "promptBytes": 4998
@@ -99,6 +99,7 @@
       ],
       "tools": [
         "ask_user_question",
+        "cordis_inspect",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -136,7 +137,6 @@
         "web_fetch",
         "web_search",
         "workflow",
-        "working_directory",
         "write"
       ],
       "promptBytes": 7362
@@ -170,7 +170,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 61394
+      "promptBytes": 60561
     },
     "ptc-plan": {
       "sections": [
@@ -201,7 +201,7 @@
       "tools": [
         "run_code"
       ],
-      "promptBytes": 63758
+      "promptBytes": 62925
     },
     "cordis": {
       "sections": [
@@ -230,8 +230,7 @@
       ],
       "tools": [
         "ask_user_question",
-        "cordis_inspect_list",
-        "cordis_inspect_query",
+        "cordis_inspect",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -266,7 +265,6 @@
         "web_fetch",
         "web_search",
         "workflow",
-        "working_directory",
         "write"
       ],
       "promptBytes": 5051
@@ -298,8 +296,7 @@
       ],
       "tools": [
         "ask_user_question",
-        "cordis_inspect_list",
-        "cordis_inspect_query",
+        "cordis_inspect",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -334,7 +331,6 @@
         "web_fetch",
         "web_search",
         "workflow",
-        "working_directory",
         "write"
       ],
       "promptBytes": 7415
@@ -349,8 +345,7 @@
         "team_task_create",
         "team_task_get",
         "team_task_list",
-        "team_task_update",
-        "working_directory"
+        "team_task_update"
       ],
       "promptBytes": 46
     },
@@ -381,6 +376,7 @@
       ],
       "tools": [
         "ask_user_question",
+        "cordis_inspect",
         "create_goal",
         "edit",
         "exit_plan_mode",
@@ -418,7 +414,6 @@
         "web_fetch",
         "web_search",
         "workflow",
-        "working_directory",
         "write"
       ],
       "promptBytes": 4998
