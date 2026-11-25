@@ -18,7 +18,8 @@
  *
  * Read-only against the repo. Requires the repo's `lib/` build outputs.
  */
-import { mkdtemp, mkdir, cp, writeFile } from 'node:fs/promises'
+import { realpathSync } from 'node:fs'
+import { mkdtemp, mkdir, cp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
@@ -29,8 +30,9 @@ function arg(name) {
   return process.argv[index + 1]
 }
 
-const repo = resolve(arg('repo'))
-const pluginDir = resolve(fileURLToPath(new URL('..', import.meta.url)))
+const repo = realpathSync.native(resolve(arg('repo')))
+const pluginDir = realpathSync.native(resolve(fileURLToPath(new URL('..', import.meta.url))))
+const pluginVersion = JSON.parse(await readFile(join(pluginDir, 'package.json'), 'utf8')).version
 const bootEnabled = process.argv.includes('--boot-enabled')
 
 async function importPackage(relativeDir) {
@@ -38,8 +40,6 @@ async function importPackage(relativeDir) {
   const entry = manifest.exports?.['.']?.default ?? manifest.main
   return import(pathToFileURL(join(repo, relativeDir, entry)).href)
 }
-
-import { readFile } from 'node:fs/promises'
 
 const appBoot = await importPackage('packages/boot/app-boot')
 const cmdline = await importPackage('packages/boot/cmdline')
@@ -88,6 +88,8 @@ const overrides = [
   },
 ]
 if (bootEnabled) overrides.push({ id: 'unrestricted', config: { enabled: true } })
+const overridesPath = join(home, 'verify-overrides.yml')
+await writeFile(overridesPath, `${JSON.stringify(overrides, null, 2)}\n`)
 
 const installAnchor = join(repo, 'apps/cli/package.json')
 const profile = {
@@ -110,7 +112,7 @@ const ctx = await appBoot.boot('dsh-test', rootConfig, [...bundlePatches, ...ove
     name: 'spec', dir: profileDir, patchPath: profile.patchPath,
     installAnchor, home, cwd: home,
     startedBundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-unrestricted'],
-    overlays: overrides, telemetryDisabledEnv: '1',
+    overlayPaths: [overridesPath], telemetryDisabledEnv: '1',
   })
   await bootCtx.plugin(appBoot.PluginPackages, { resolution })
   cmdline.provideCmdline(bootCtx, { args: [], exit: () => {} })
@@ -306,7 +308,7 @@ try {
   check('shared /api status RPC returns 200 ok with current version',
     rpcStatus.status === 200
     && rpcStatus.body?.result?.ok === true
-    && rpcStatus.body.result.value?.version === '0.2.14'
+    && rpcStatus.body.result.value?.version === pluginVersion
     && rpcStatus.body.result.value?.enabled === true)
   const rpcPreview = await callSharedRpc('preview', { presetId: 'standard' })
   check('shared /api preview RPC returns 200 ok with fused prompt',
@@ -330,7 +332,11 @@ try {
   check('plan on: plan keeps the contract scope', planOn.text.includes('this contract decides the content'))
   planAgent.session.append('plan/mode', { active: false })
   const planOff = await assemblePrompt(planAgent)
-  check('plan off: plan section gone', !planOff.text.includes('You are in plan mode.'))
+  const hasPlanStatus = planOff.sections.includes('plan:status')
+  check('plan off: plan mode marked inactive', hasPlanStatus
+    ? (planOff.text.includes('Plan mode is inactive. The plan-mode instructions no longer apply.')
+      && !planOff.text.includes('Plan mode is active.'))
+    : !planOff.text.includes('You are in plan mode.'))
   check('plan off: still fused', planOff.text.includes(rules.EXECUTION_MODE_BLOCK))
 
   // PTC mode keeps its run_code protocol.

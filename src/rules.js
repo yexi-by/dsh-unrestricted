@@ -252,6 +252,8 @@ export function fuseSections(sections, presetId, { isSubagent = false, allowDyna
   const personaIndex = fused.findIndex(section => section.name === 'deployment:persona-prefix')
   const identityIndex = fused.findIndex(section => section.name === 'harness:identity')
   const insertAt = personaIndex >= 0 ? personaIndex + 1 : (identityIndex >= 0 ? identityIndex + 1 : 0)
-  fused.splice(insertAt, 0, { name: BLOCK_SECTION, text: EXECUTION_MODE_BLOCK })
+  const anchor = personaIndex >= 0 ? fused[personaIndex] : (identityIndex >= 0 ? fused[identityIndex] : undefined)
+  const blockOrder = typeof anchor?.order === 'number' && Number.isFinite(anchor.order) ? anchor.order + 1 : 101
+  fused.splice(insertAt, 0, { name: BLOCK_SECTION, order: blockOrder, text: EXECUTION_MODE_BLOCK })
   return { sections: fused }
 }
