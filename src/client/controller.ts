@@ -13,6 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 export interface UnrestrictedSettings {
   enabled?: boolean
   stripHostIdentity?: boolean
+  customPrompt?: string
 }
 
 /** Per-preset fusion state reported by the host half. */
@@ -25,6 +26,12 @@ export interface UnrestrictedModeState {
 export interface UnrestrictedStatus {
   enabled: boolean
   stripHostIdentity?: boolean
+  /** Persisted custom execution-mode prompt override, empty when using built-in default. */
+  customPrompt?: string
+  /** Built-in default execution-mode prompt text owned by the host half. */
+  defaultPrompt?: string
+  /** Whether a non-default custom execution-mode prompt is currently active. */
+  isCustomPrompt?: boolean
   /** Current plugin version reported by the host half. */
   version?: string
   modes: Record<string, UnrestrictedModeState>
@@ -60,6 +67,12 @@ export interface UnrestrictedViewSnapshot {
   enabled: boolean
   /** Persisted host-brand stripping toggle; false until synced. */
   stripHostIdentity: boolean
+  /** Persisted custom prompt override (LF-normalized); empty when using built-in default. */
+  customPrompt: string
+  /** Built-in default execution-mode prompt text returned by the host status RPC. */
+  defaultPrompt: string
+  /** Whether a custom execution-mode prompt is currently overriding the default. */
+  isCustomPrompt: boolean
   /** Whether the Host document accepts writes. */
   writable: boolean
   /** Settings scope sync state. */
@@ -93,6 +106,10 @@ export interface UnrestrictedCardInjected {
   setEnabled: (enabled: boolean) => Promise<void>
   /** Persist whether host identity branding is stripped from prompts. */
   setStripHostIdentity: (strip: boolean) => Promise<void>
+  /** Persist a user-edited execution-mode prompt (clears override when equal to default). */
+  setCustomPrompt: (prompt: string) => Promise<boolean>
+  /** Clear any custom prompt override and restore the built-in default. */
+  resetCustomPrompt: () => Promise<boolean>
   /** Re-validate runtime state and refresh. */
   recheck: () => Promise<void>
   /** Re-read host status and invalidate cached previews. */
@@ -104,6 +121,11 @@ export interface UnrestrictedCardInjected {
 const RPC_CHANNEL = '/api'
 const RPC_NAMESPACE = 'dsh-unrestricted'
 const SETTINGS_NS = 'unrestricted'
+
+/** Normalize line endings so YAML/browser values compare identically across OSes. */
+function normalizePromptText(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/\r\n?/g, '\n') : ''
+}
 
 /** Human-readable error text for the banner. */
 function messageOf(error: unknown): string {
@@ -122,6 +144,9 @@ export function createUnrestrictedController(ctx: Context) {
   let snapshot: UnrestrictedViewSnapshot = {
     enabled: false,
     stripHostIdentity: false,
+    customPrompt: '',
+    defaultPrompt: '',
+    isCustomPrompt: false,
     writable: false,
     settingsStatus: 'loading',
     status: null,
@@ -145,12 +170,22 @@ export function createUnrestrictedController(ctx: Context) {
     const settingsSnapshot = settings.getSnapshot()
     const enabled = settingsSnapshot.value?.enabled === true
     const stripHostIdentity = settingsSnapshot.value?.stripHostIdentity === true
-    if (enabled !== snapshot.enabled || stripHostIdentity !== snapshot.stripHostIdentity) {
+    const customPrompt = normalizePromptText(settingsSnapshot.value?.customPrompt)
+    const defaultPrompt = normalizePromptText(snapshot.status?.defaultPrompt)
+    const isCustomPrompt = customPrompt.trim() !== '' && (defaultPrompt === '' || customPrompt !== defaultPrompt)
+    if (
+      enabled !== snapshot.enabled
+      || stripHostIdentity !== snapshot.stripHostIdentity
+      || customPrompt !== snapshot.customPrompt
+    ) {
       invalidatePreviews()
     }
     snapshot = {
       enabled,
       stripHostIdentity,
+      customPrompt,
+      defaultPrompt,
+      isCustomPrompt,
       writable: settingsSnapshot.writable,
       settingsStatus: settingsSnapshot.status,
       status: snapshot.status,
@@ -210,26 +245,59 @@ export function createUnrestrictedController(ctx: Context) {
     return readStatus('status', clearPreviews)
   }
 
-  function updateSetting<K extends keyof UnrestrictedSettings>(
+  async function updateSetting<K extends keyof UnrestrictedSettings>(
     field: K,
     value: NonNullable<UnrestrictedSettings[K]>,
-  ): Promise<void> {
-    return whileBusy(async () => {
+  ): Promise<boolean> {
+    let accepted = false
+    await whileBusy(async () => {
       try {
-        await settings.set(field, value)
+        accepted = (await settings.set(field, value)) !== false
         await refresh(true)
       } catch (error) {
         snapshot = { ...snapshot, message: messageOf(error) }
+        accepted = false
       }
     })
+    return accepted
   }
 
-  function setEnabled(enabled: boolean): Promise<void> {
-    return updateSetting('enabled', enabled)
+  async function clearCustomPrompt(): Promise<boolean> {
+    let accepted = false
+    await whileBusy(async () => {
+      try {
+        const result = typeof settings.unset === 'function'
+          ? await settings.unset('customPrompt')
+          : await settings.set('customPrompt', '')
+        accepted = result !== false
+        await refresh(true)
+      } catch (error) {
+        snapshot = { ...snapshot, message: messageOf(error) }
+        accepted = false
+      }
+    })
+    return accepted
   }
 
-  function setStripHostIdentity(strip: boolean): Promise<void> {
-    return updateSetting('stripHostIdentity', strip)
+  async function setEnabled(enabled: boolean): Promise<void> {
+    await updateSetting('enabled', enabled)
+  }
+
+  async function setStripHostIdentity(strip: boolean): Promise<void> {
+    await updateSetting('stripHostIdentity', strip)
+  }
+
+  function setCustomPrompt(prompt: string): Promise<boolean> {
+    const normalized = normalizePromptText(prompt)
+    const defaultPrompt = normalizePromptText(snapshot.status?.defaultPrompt)
+    if (normalized.trim() === '' || (defaultPrompt !== '' && normalized === defaultPrompt)) {
+      return clearCustomPrompt()
+    }
+    return updateSetting('customPrompt', normalized)
+  }
+
+  function resetCustomPrompt(): Promise<boolean> {
+    return clearCustomPrompt()
   }
 
   function recheck(): Promise<void> {
@@ -290,6 +358,8 @@ export function createUnrestrictedController(ctx: Context) {
       hooks: { view },
       setEnabled,
       setStripHostIdentity,
+      setCustomPrompt,
+      resetCustomPrompt,
       recheck,
       refresh: () => refresh(true),
       loadPreview,

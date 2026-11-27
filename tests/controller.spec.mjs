@@ -3,10 +3,17 @@ import test from 'node:test'
 import { createUnrestrictedController } from '../src/client/controller.ts'
 
 const settle = () => new Promise(setImmediate)
-const status = (version, enabled = true) => ({ enabled, version, modes: {} })
+const DEFAULT_PROMPT = '## Default execution contract'
+const status = (version, enabled = true, extra = {}) => ({
+  enabled,
+  defaultPrompt: DEFAULT_PROMPT,
+  version,
+  modes: {},
+  ...extra,
+})
 
 /** 保留真实控制器，仅控制设置提交、配置事件和 RPC 的完成时序。 */
-async function fixture() {
+async function fixture({ supportsUnset = true } = {}) {
   let value = { enabled: true }
   const subscribers = new Set()
   const events = new Map()
@@ -15,6 +22,7 @@ async function fixture() {
     recheck: [],
     preview: [],
     write: [],
+    unset: [],
   }
   function defer(endpoint, payload) {
     return new Promise((resolve, reject) => pending[endpoint].push({ payload, resolve, reject }))
@@ -26,6 +34,7 @@ async function fixture() {
       return () => subscribers.delete(listener)
     },
     set: (field, next) => defer('write', { field, next }),
+    ...(supportsUnset ? { unset: field => defer('unset', { field }) } : {}),
   }
   const ctx = {
     get: () => ({
@@ -173,4 +182,59 @@ test('切换隐藏宿主品牌标识立即使旧预览失效并在提交后同�
   await writing
   assert.equal(f.view().busy, false)
   assert.equal(f.view().status.stripHostIdentity, true)
+})
+
+test('保存与重置自定义提示词：规范换行、清理预览并在恢复默认时卸载字段', async () => {
+  const f = await fixture()
+  assert.equal(f.view().defaultPrompt, DEFAULT_PROMPT)
+  assert.equal(f.view().customPrompt, '')
+  assert.equal(f.view().isCustomPrompt, false)
+
+  const preview = f.face.loadPreview('standard')
+  f.answer(f.take('preview'), { available: true, text: 'default preview' })
+  await preview
+  assert.equal(f.view().previews.standard.preview.text, 'default preview')
+
+  const saving = f.face.setCustomPrompt('## Custom\r\nLine 2')
+  const writeRequest = f.take('write')
+  assert.deepEqual(writeRequest.payload, { field: 'customPrompt', next: '## Custom\nLine 2' })
+  f.commitSettings({ customPrompt: '## Custom\nLine 2' })
+  assert.equal(f.view().customPrompt, '## Custom\nLine 2')
+  assert.equal(f.view().isCustomPrompt, true)
+  assert.equal(f.view().previews.standard, undefined)
+
+  f.answer(f.take('status'), status('0.2.17', true, { customPrompt: '## Custom\nLine 2', isCustomPrompt: true }))
+  writeRequest.resolve(true)
+  await settle()
+  f.answer(f.take('status'), status('0.2.17', true, { customPrompt: '## Custom\nLine 2', isCustomPrompt: true }))
+  assert.equal(await saving, true)
+  assert.equal(f.view().busy, false)
+
+  // 保存与内置默认一致的内容时直接 unset，恢复默认状态。
+  const matchingDefault = f.face.setCustomPrompt(`${DEFAULT_PROMPT}\r`.replace('\r', ''))
+  const unsetRequest = f.take('unset')
+  assert.deepEqual(unsetRequest.payload, { field: 'customPrompt' })
+  f.commitSettings({ customPrompt: '' })
+  assert.equal(f.view().isCustomPrompt, false)
+  f.answer(f.take('status'), status('0.2.17', true, { customPrompt: '', isCustomPrompt: false }))
+  unsetRequest.resolve(true)
+  await settle()
+  f.answer(f.take('status'), status('0.2.17', true, { customPrompt: '', isCustomPrompt: false }))
+  assert.equal(await matchingDefault, true)
+})
+
+test('缺少 settings.unset 时重置自定义提示词回退为空串，写入拒绝或异常返回 false', async () => {
+  const f = await fixture({ supportsUnset: false })
+  const resetting = f.face.resetCustomPrompt()
+  const writeRequest = f.take('write')
+  assert.deepEqual(writeRequest.payload, { field: 'customPrompt', next: '' })
+  writeRequest.resolve(false)
+  await settle()
+  f.answer(f.take('status'), status('0.2.17', true))
+  assert.equal(await resetting, false)
+
+  const failing = f.face.setCustomPrompt('## Fail case')
+  f.take('write').reject(new Error('disk full'))
+  assert.equal(await failing, false)
+  assert.equal(f.view().message, 'disk full')
 })

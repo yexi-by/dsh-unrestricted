@@ -34,6 +34,7 @@ dsh plugin --profile web remove dsh-unrestricted
 Restart `dsh web` or DSH Desktop after installing, then enable both the plugin switch under **Plugins** and **"Enable unrestricted mode"** inside its settings card. Additional card features:
 
 - **Strip Host Brand Identity**: Independently removes `DeepSeek Harness` / `DSH` identity sections and Web GUI checkout context to avoid HTTP `429` client-fingerprinting blocks on third-party proxy routes.
+- **Custom Execution Prompt Editor**: Edit the injected `unrestricted:execution-mode` prompt directly inside the settings card (e.g., tweak sensitive keywords or substitute custom rules) with instant hot-apply on the next request and one-click reset to default.
 - **Mode Coverage & Prompt Preview**: Inspect and copy the full assembled system prompt across Standard, PTC, Cordis, and Minimal modes.
 
 ## Development & Testing

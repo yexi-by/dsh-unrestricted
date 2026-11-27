@@ -13,8 +13,9 @@ import assert from 'node:assert/strict'
 import {
   ANCHORS, BLOCK_SECTION, EXECUTION_MODE_BLOCK,
   HOST_IDENTITY_CONTEXTS, HOST_IDENTITY_SECTIONS, PRESETS,
-  contractAdditions, fuseSections, fusedMinimalPrompt, renderPreview,
-  sanitizeSectionBrandText, stripHostIdentityFromAssembly,
+  contractAdditions, fuseSections, fusedMinimalPrompt, normalizePromptText,
+  renderPreview, resolveExecutionModeBlock, sanitizeSectionBrandText,
+  stripHostIdentityFromAssembly,
 } from '../src/rules.js'
 
 const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url))
@@ -454,4 +455,31 @@ test('fuseSections supports dynamic extra presets only when allowDynamicPreset i
   assert.equal(allowed.issues, undefined)
   const ptcSection = allowed.sections.find(s => s.name === 'tools:ptc-only')
   assert.ok(ptcSection.text.endsWith(contractAdditions('ptc').ptcNote))
+})
+
+test('custom execution prompt overrides default block safely, normalizes line endings, and disables interpolation', async () => {
+  assert.equal(normalizePromptText('a\r\nb\rc'), 'a\nb\nc')
+  assert.equal(resolveExecutionModeBlock(''), EXECUTION_MODE_BLOCK)
+  assert.equal(resolveExecutionModeBlock('   \r\n\t '), EXECUTION_MODE_BLOCK)
+
+  const custom = '## Custom rules\r\nKeep {{char}} and {{user}} literal.'
+  assert.equal(resolveExecutionModeBlock(custom), '## Custom rules\nKeep {{char}} and {{user}} literal.')
+
+  const sections = await sectionsOf('standard')
+  const fused = fuseSections(sections, 'standard', { customPrompt: custom })
+  assert.equal(fused.issues, undefined)
+  const block = fused.sections.find(s => s.name === BLOCK_SECTION)
+  assert.ok(block)
+  assert.equal(block.text, '## Custom rules\nKeep {{char}} and {{user}} literal.')
+  assert.equal(Number.isFinite(block.order), true)
+  assert.equal(block.interpolate, false)
+
+  const minimalCustom = fusedMinimalPrompt('', custom)
+  assert.ok(minimalCustom.startsWith(ANCHORS.personaMinimal))
+  assert.ok(minimalCustom.includes('## Custom rules\nKeep {{char}} and {{user}} literal.'))
+  assert.ok(!minimalCustom.includes(EXECUTION_MODE_BLOCK))
+
+  const minimalStructured = fusedMinimalPrompt(ANCHORS.structuredOutputFull, custom)
+  assert.ok(minimalStructured.includes('## Custom rules\nKeep {{char}} and {{user}} literal.'))
+  assert.ok(minimalStructured.includes(ANCHORS.structuredOutputFull))
 })

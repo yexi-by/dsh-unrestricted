@@ -102,13 +102,35 @@ function appendOnce(text, suffix) {
 }
 
 /**
+ * Normalize line endings so YAML and browser edits compare identically across platforms.
+ * @param {unknown} text
+ * @returns {string}
+ */
+export function normalizePromptText(text) {
+  return typeof text === 'string' ? text.replace(/\r\n?/g, '\n') : ''
+}
+
+/**
+ * Resolve the effective execution-mode block from an optional user override.
+ * Blank or whitespace-only overrides fall back to the built-in default block.
+ * @param {unknown} [customPrompt]
+ * @returns {string}
+ */
+export function resolveExecutionModeBlock(customPrompt) {
+  const normalized = normalizePromptText(customPrompt)
+  return normalized.trim() === '' ? EXECUTION_MODE_BLOCK : normalized
+}
+
+/**
  * The fused minimal prompt: the persona sentence, the pointer, the mode
  * section, and optional structured-output guidance when a structured subagent
  * runs under minimal.
  * @param {string} [structuredText] - optional original `tool:structured_output` section text.
+ * @param {string} [customPrompt] - optional user-edited execution-mode block.
  */
-export function fusedMinimalPrompt(structuredText = '') {
-  const base = ANCHORS.personaMinimal + PERSONA_POINTER + '\n\n' + EXECUTION_MODE_BLOCK
+export function fusedMinimalPrompt(structuredText = '', customPrompt = '') {
+  const block = resolveExecutionModeBlock(customPrompt)
+  const base = ANCHORS.personaMinimal + PERSONA_POINTER + '\n\n' + block
   const trimmed = structuredText.trim()
   if (trimmed === '') return base
   return base + '\n\n' + appendOnce(trimmed, STRUCTURED_OUTPUT_NOTE)
@@ -206,16 +228,18 @@ export function stripHostIdentityFromAssembly(assembly) {
  * @param presetId - the composed preset id (must be in PRESETS or enabled via allowDynamicPreset).
  * @param options.isSubagent - tolerate an absent persona on delegated subagents.
  * @param options.allowDynamicPreset - allow fusing presets outside PRESET_RULES.
+ * @param options.customPrompt - optional user-edited execution-mode block.
  * @returns `{ sections }` with the fusion applied, or `{ issues }` with a
  *   structured error code when the preset is unsupported or lacks a persona.
  */
-export function fuseSections(sections, presetId, { isSubagent = false, allowDynamicPreset = false } = {}) {
+export function fuseSections(sections, presetId, { isSubagent = false, allowDynamicPreset = false, customPrompt = '' } = {}) {
   const rules = PRESET_RULES[presetId] ?? (allowDynamicPreset ? { plan: true, ptcOnly: true } : undefined)
   if (rules === undefined) return { issues: ['unsupported-preset'] }
   if (sections.some(section => section.name === BLOCK_SECTION)) {
     return { sections }
   }
 
+  const blockText = resolveExecutionModeBlock(customPrompt)
   const byName = new Map(sections.map(section => [section.name, section]))
   const persona = byName.get('deployment:persona-prefix')
   let fusedPersona = undefined
@@ -254,6 +278,6 @@ export function fuseSections(sections, presetId, { isSubagent = false, allowDyna
   const insertAt = personaIndex >= 0 ? personaIndex + 1 : (identityIndex >= 0 ? identityIndex + 1 : 0)
   const anchor = personaIndex >= 0 ? fused[personaIndex] : (identityIndex >= 0 ? fused[identityIndex] : undefined)
   const blockOrder = typeof anchor?.order === 'number' && Number.isFinite(anchor.order) ? anchor.order + 1 : 101
-  fused.splice(insertAt, 0, { name: BLOCK_SECTION, order: blockOrder, text: EXECUTION_MODE_BLOCK })
+  fused.splice(insertAt, 0, { name: BLOCK_SECTION, order: blockOrder, interpolate: false, text: blockText })
   return { sections: fused }
 }

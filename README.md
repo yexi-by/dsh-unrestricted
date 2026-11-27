@@ -34,6 +34,7 @@ dsh plugin --profile web remove dsh-unrestricted
 安装或更新后重启 `dsh web` 或 DSH 桌面端，在侧栏 **「插件 → dsh-unrestricted」** 打开插件开关与卡片内的 **「启用破限」**。卡片同时提供：
 
 - **隐藏宿主品牌标识**：独立于破限主开关生效，移除系统提示词与运行时上下文中的 `DeepSeek Harness` / `DSH` 身份段落与 Web GUI 路径，避免第三方反代路由因客户端特征检测返回 `429`。
+- **破限提示词自由编辑**：支持在卡片内直接编辑 `unrestricted:execution-mode` 破限提示词本体（如删改敏感关键词或替换为自定义规则），保存后从下一次请求即时生效，并支持一键恢复内置默认。
 - **模式覆盖与提示词预览**：查看并一键复制 Standard、PTC、Cordis、Minimal 四种模式组装后的完整系统提示词。
 
 ## 开发与验证

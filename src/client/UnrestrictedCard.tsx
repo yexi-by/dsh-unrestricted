@@ -1,9 +1,10 @@
 /**
  * The unrestricted settings view:
  * - Master toggle card with native Switch, status Tag, and scope boundary notes
+ * - Editable execution-mode prompt card with save, discard, and reset-to-default
  * - Per-preset coverage list with StateDot, Tag, preview drawer, and one-click copy
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Button,
   StateDot,
@@ -99,6 +100,11 @@ function localizePreviewError(
     : t('errorPreviewFailed')
 }
 
+/** UTF-8 byte length of a string in browser environments. */
+function utf8ByteLength(text: string): number {
+  return new TextEncoder().encode(text).length
+}
+
 /**
  * Render the unrestricted configuration cards.
  */
@@ -108,7 +114,33 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
   const status = view.status
   const [openPreview, setOpenPreview] = useState<string | null>(null)
   const [copiedPreset, setCopiedPreset] = useState<string | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [hasLocalEdit, setHasLocalEdit] = useState(false)
+  const [promptFeedback, setPromptFeedback] = useState<'saved' | 'reset' | null>(null)
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const openEntry = openPreview === null ? undefined : view.previews[openPreview]
+
+  const effectivePrompt = view.customPrompt.trim() !== '' ? view.customPrompt : view.defaultPrompt
+  const normalizedDraft = draft.replace(/\r\n?/g, '\n')
+  const isDirty = hasLocalEdit && normalizedDraft !== effectivePrompt
+  const isDraftEmpty = normalizedDraft.trim() === ''
+  const editorReady = effectivePrompt !== '' || view.status !== null
+  const controlsEditable = view.writable && view.settingsStatus === 'ready' && !view.busy
+  const canSave = controlsEditable && isDirty && !isDraftEmpty
+  const canReset = controlsEditable
+    && (view.isCustomPrompt || (view.defaultPrompt !== '' && normalizedDraft !== view.defaultPrompt))
+
+  // Keep the editor draft synced with the active prompt until the user starts editing.
+  useEffect(() => {
+    if (!hasLocalEdit) {
+      setDraft(effectivePrompt)
+    }
+  }, [effectivePrompt, hasLocalEdit])
+
+  useEffect(() => () => {
+    if (feedbackTimerRef.current !== null) clearTimeout(feedbackTimerRef.current)
+  }, [])
 
   // When a refresh/toggle invalidates the preview map while a preview drawer
   // is open, automatically reload that preset's preview.
@@ -117,6 +149,41 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
       void loadPreview(openPreview)
     }
   }, [openPreview, openEntry, loadPreview])
+
+  function showPromptFeedback(kind: 'saved' | 'reset'): void {
+    setPromptFeedback(kind)
+    if (feedbackTimerRef.current !== null) clearTimeout(feedbackTimerRef.current)
+    feedbackTimerRef.current = setTimeout(() => {
+      setPromptFeedback(null)
+      feedbackTimerRef.current = null
+    }, 2600)
+  }
+
+  async function handleSavePrompt(): Promise<void> {
+    if (!canSave) return
+    const saved = await props.setCustomPrompt(draft)
+    if (!saved) return
+    const matchedDefault = view.defaultPrompt !== '' && normalizedDraft === view.defaultPrompt
+    setHasLocalEdit(false)
+    showPromptFeedback(matchedDefault ? 'reset' : 'saved')
+  }
+
+  function handleDiscardPrompt(): void {
+    setDraft(effectivePrompt)
+    setHasLocalEdit(false)
+    setPromptFeedback(null)
+  }
+
+  async function handleResetPrompt(): Promise<void> {
+    if (!canReset) return
+    if (view.isCustomPrompt) {
+      const cleared = await props.resetCustomPrompt()
+      if (!cleared) return
+    }
+    setDraft(view.defaultPrompt)
+    setHasLocalEdit(false)
+    showPromptFeedback('reset')
+  }
 
   const hasFailedMode = status !== null
     && Object.values(status.modes).some(mode => mode.state === 'failed')
@@ -176,6 +243,9 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
             {view.settingsStatus === 'ready' && view.stripHostIdentity && (
               <Tag tone="outline">{t('stripHostBadge')}</Tag>
             )}
+            {view.settingsStatus === 'ready' && view.isCustomPrompt && (
+              <Tag tone="info">{t('customPromptBadge')}</Tag>
+            )}
           </div>
           <div className="dsh-unrestricted-headerControls">
             <span className="dsh-unrestricted-switchLabel">{t('toggle')}</span>
@@ -214,7 +284,124 @@ export function UnrestrictedCard(props: UnrestrictedCardProps) {
         )}
       </section>
 
-      {/* Card 2: Mode Coverage & Prompt Previews */}
+      {/* Card 2: Editable Execution Prompt */}
+      <section className="dsh-unrestricted-card" aria-labelledby="dsh-unrestricted-prompt-title">
+        <div className="dsh-unrestricted-header">
+          <div className="dsh-unrestricted-headerTitle">
+            <h4 id="dsh-unrestricted-prompt-title" className="dsh-unrestricted-subtitle">
+              {t('promptEditorTitle')}
+            </h4>
+            <Tag tone={view.isCustomPrompt ? 'info' : 'neutral'}>
+              {t(view.isCustomPrompt ? 'promptStateCustom' : 'promptStateDefault')}
+            </Tag>
+            {isDirty && (
+              <Tag tone="warning">{t('promptStateUnsaved')}</Tag>
+            )}
+          </div>
+          <div className="dsh-unrestricted-headerControls">
+            {view.isCustomPrompt && !editorOpen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!controlsEditable}
+                onClick={() => { void handleResetPrompt() }}
+              >
+                {t('promptEditorReset')}
+              </Button>
+            )}
+            <Button
+              variant={editorOpen ? 'toolbar' : 'outline'}
+              size="sm"
+              onClick={() => { setEditorOpen(open => !open) }}
+            >
+              {t(editorOpen ? 'closePromptEditor' : 'openPromptEditor')}
+            </Button>
+          </div>
+        </div>
+        <p className="dsh-unrestricted-note">{t('promptEditorDesc')}</p>
+
+        {editorOpen && (
+          <div className="dsh-unrestricted-editor">
+            {!editorReady ? (
+              <p className="dsh-unrestricted-note" role="status">{t('promptEditorLoading')}</p>
+            ) : (
+              <>
+                <div className="dsh-unrestricted-previewHeader">
+                  <p className="dsh-unrestricted-previewMeta">
+                    {draft === '' ? 0 : draft.split('\n').length} {t('previewSize')}
+                    {` · ${draft.length} ${t('promptEditorChars')} · ${fileSizeText(utf8ByteLength(draft))}`}
+                  </p>
+                  <span className="dsh-unrestricted-previewMeta">{t('promptEditorShortcutHint')}</span>
+                </div>
+                <textarea
+                  className="dsh-unrestricted-editorInput"
+                  aria-label={t('promptEditorTitle')}
+                  placeholder={t('promptEditorPlaceholder')}
+                  spellCheck={false}
+                  value={draft}
+                  disabled={!controlsEditable}
+                  onChange={(event) => {
+                    setDraft(event.target.value)
+                    setHasLocalEdit(true)
+                    setPromptFeedback(null)
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && canSave) {
+                      event.preventDefault()
+                      void handleSavePrompt()
+                    }
+                  }}
+                />
+                <div className="dsh-unrestricted-editorFooter">
+                  <p
+                    className="dsh-unrestricted-editorStatus"
+                    data-tone={isDraftEmpty ? 'warning' : promptFeedback !== null ? 'success' : undefined}
+                    role="status"
+                  >
+                    {isDraftEmpty
+                      ? t('promptEditorEmptyHint')
+                      : promptFeedback === 'saved'
+                        ? t('promptEditorSaved')
+                        : promptFeedback === 'reset'
+                          ? t('promptEditorResetDone')
+                          : ''}
+                  </p>
+                  <div className="dsh-unrestricted-headerControls">
+                    {isDirty && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={view.busy}
+                        onClick={handleDiscardPrompt}
+                      >
+                        {t('promptEditorDiscard')}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!canReset}
+                      onClick={() => { void handleResetPrompt() }}
+                    >
+                      {t('promptEditorReset')}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!canSave}
+                      onClick={() => { void handleSavePrompt() }}
+                    >
+                      {t('promptEditorSave')}
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Card 3: Mode Coverage & Prompt Previews */}
       <section className="dsh-unrestricted-card" aria-labelledby="dsh-unrestricted-modes-title">
         <div className="dsh-unrestricted-header">
           <div className="dsh-unrestricted-headerTitle">

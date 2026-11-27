@@ -246,6 +246,67 @@ const CSS = `
   overflow-wrap: anywhere;
 }
 
+.dsh-unrestricted-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
+}
+
+.dsh-unrestricted-editorInput {
+  width: 100%;
+  min-height: 240px;
+  max-height: 520px;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md, 8px);
+  padding: 10px 12px;
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-layer-2));
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.dsh-unrestricted-editorInput:focus {
+  border-color: var(--dsw-alias-state-business-primary, var(--dsw-alias-border-l1));
+}
+
+.dsh-unrestricted-editorInput:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.dsh-unrestricted-editorFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.dsh-unrestricted-editorStatus {
+  flex: 1;
+  min-width: 160px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.dsh-unrestricted-editorStatus[data-tone='success'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.dsh-unrestricted-editorStatus[data-tone='warning'] {
+  color: var(--dsw-alias-state-warning-primary, var(--dsw-alias-state-error-primary));
+}
+
 @media (max-width: 640px) {
   .dsh-unrestricted-card {
     padding: 14px;

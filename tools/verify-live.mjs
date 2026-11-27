@@ -476,8 +476,51 @@ try {
     }
   }
 
+  console.log('custom prompt editing')
+  const customBlock = '## Custom local execution mode\n\nPreserve literal {{char}} and {{user}} tokens without interpolation errors.'
+  await updateSettings({ enabled: true, stripHostIdentity: false, customPrompt: customBlock })
+  await until('custom prompt propagation', async () =>
+    (await assemblePrompt(await presetAgent('standard'))).text.includes(customBlock))
+
+  for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
+    const customAssembled = await assemblePrompt(await presetAgent(id))
+    check(`customPrompt applies to ${id} live assembly with literal {{...}} intact`,
+      customAssembled.text.includes(customBlock) && !customAssembled.text.includes(rules.EXECUTION_MODE_BLOCK))
+  }
+  const customMinimalChildPrompt = await assemblePrompt(customMinimal)
+  check('customPrompt applies to minimal custom subagent',
+    customMinimalChildPrompt.text.includes(customBlock) && !customMinimalChildPrompt.text.includes(rules.EXECUTION_MODE_BLOCK))
+
+  const customStatusRpc = await callSharedRpc('status')
+  check('status RPC reports customPrompt, defaultPrompt, and isCustomPrompt=true',
+    customStatusRpc.status === 200
+    && customStatusRpc.body?.result?.ok === true
+    && customStatusRpc.body.result.value?.customPrompt === customBlock
+    && customStatusRpc.body.result.value?.defaultPrompt === rules.EXECUTION_MODE_BLOCK
+    && customStatusRpc.body.result.value?.isCustomPrompt === true)
+  for (const id of ['standard', 'minimal']) {
+    const customPreviewRpc = await callSharedRpc('preview', { presetId: id })
+    check(`preview RPC for ${id} renders customPrompt`,
+      customPreviewRpc.status === 200
+      && customPreviewRpc.body?.result?.ok === true
+      && customPreviewRpc.body.result.value?.available === true
+      && customPreviewRpc.body.result.value.text.includes(customBlock))
+  }
+
+  await updateSettings({ customPrompt: '' })
+  await until('custom prompt reset to default', async () =>
+    (await assemblePrompt(await presetAgent('standard'))).text.includes(rules.EXECUTION_MODE_BLOCK))
+  const minimalReset = await assemblePrompt(await presetAgent('minimal'))
+  check('clearing customPrompt restores default block on minimal too',
+    minimalReset.text === expectedMinimal)
+  const resetStatusRpc = await callSharedRpc('status')
+  check('status RPC reports isCustomPrompt=false after reset',
+    resetStatusRpc.status === 200
+    && resetStatusRpc.body?.result?.ok === true
+    && resetStatusRpc.body.result.value?.isCustomPrompt === false)
+
   console.log('toggle off')
-  await updateSettings({ enabled: false, stripHostIdentity: false })
+  await updateSettings({ enabled: false, stripHostIdentity: false, customPrompt: '' })
   for (const id of ['standard', 'ptc', 'cordis', 'minimal']) {
     const off = await until(`${id} restore`, async () => {
       const prompt = await assemblePrompt(await presetAgent(id))
