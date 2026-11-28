@@ -52,7 +52,7 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.spec.mjs",
-    "dump-prompts": "node tools/dump-prompts.mjs --repo ../../deepseek-harness --out tests/fixtures"
+    "dump-prompts": "node tools/dump-prompts.mjs --repo ../deepseek-harness --out tests/fixtures"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
